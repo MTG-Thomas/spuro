@@ -11,7 +11,7 @@ It recursively audits source roots for uncommitted changes, detached checkouts,
 unpushed branches, reflog-only history, dropped stashes and unreachable commits.
 Native Git supplies the facts; exact reachability, tree equality and stable patch
 IDs help separate unique work from rebased, cherry-picked or duplicated history.
-Spuro MVP 0.1.0 is a preservation-risk scanner. It performs no cleanup or rescue operations.
+Spuro MVP 0.1.1 is a preservation-risk scanner. It performs no cleanup or rescue operations.
 
 ## Install
 
@@ -20,7 +20,7 @@ verify SHA256SUMS, and place the executable on PATH. Native Git is required sepa
 Or install with Go: `go install github.com/MTG-Thomas/spuro/cmd/spuro@latest`.
 Adapters are optional; `make build` builds all three executables.
 
-See [maturity](docs/maturity.md), [contributing](CONTRIBUTING.md), and the [MIT license](LICENSE).
+See [maturity](docs/maturity.md), [contributing](CONTRIBUTING.md), and the [AGPL-3.0 license](LICENSE).
 
 ## Build and scan
 
@@ -144,3 +144,9 @@ equivalents. Scan tests compare checkout files and repository metadata byte for
 byte before and after. Fixture construction alone uses Git mutations; production
 scanner code has a read-only command gate. See [estate validation](docs/validation.md)
 for the acceptance corpus and recorded limitations.
+
+## License
+
+Copyright (c) 2026 Thomas Bray. Spuro is licensed under the GNU Affero General
+Public License, version 3 only (`AGPL-3.0-only`). See [LICENSE](LICENSE).
+Third-party dependencies retain their respective licenses.

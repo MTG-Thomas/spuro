@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Correct the project license to AGPL-3.0-only.
+- Republish platform archives with the AGPL-3.0 license text.
+
 ## 0.1.0
 
 - Recursive native-Git discovery and common-directory worktree deduplication.

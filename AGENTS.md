@@ -9,3 +9,6 @@ Sign commits. Before publishing run `make check build`; verify exact signatures.
 Changes to safety, reachability, equivalence, discovery, or parsing require fixture
 coverage. Never publish real estate reports or machine-specific private evidence.
 Keep README concise, current maturity in docs/maturity.md, and gaps in docs/roadmap.md.
+
+Licensing is AGPL-3.0-only. Do not infer licensing from reference repositories or
+change it without an explicit owner instruction.
