@@ -3,10 +3,10 @@ package analyze
 import (
 	"context"
 	"fmt"
+	"github.com/MTG-Thomas/spuro/internal/config"
+	gitbackend "github.com/MTG-Thomas/spuro/internal/git"
+	"github.com/MTG-Thomas/spuro/internal/model"
 	"sort"
-	"spuro/internal/config"
-	gitbackend "spuro/internal/git"
-	"spuro/internal/model"
 	"strconv"
 	"strings"
 	"sync"

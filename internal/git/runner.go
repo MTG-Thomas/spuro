@@ -4,10 +4,10 @@ package git
 import (
 	"context"
 	"fmt"
+	"github.com/MTG-Thomas/spuro/internal/process"
 	"io"
 	"net/url"
 	"os/exec"
-	"spuro/internal/process"
 	"strings"
 	"time"
 )

@@ -2,8 +2,8 @@ package analyze
 
 import (
 	"encoding/json"
+	"github.com/MTG-Thomas/spuro/internal/model"
 	"os"
-	"spuro/internal/model"
 	"testing"
 )
 

@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/MTG-Thomas/spuro/internal/model"
 	"os"
 	"path/filepath"
-	"spuro/internal/model"
 	"testing"
 )
 

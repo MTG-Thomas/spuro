@@ -2,10 +2,10 @@ package report
 
 import (
 	"bytes"
+	"github.com/MTG-Thomas/spuro/internal/model"
 	"io"
 	"os"
 	"path/filepath"
-	"spuro/internal/model"
 	"strings"
 	"testing"
 )

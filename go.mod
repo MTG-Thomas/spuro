@@ -1,4 +1,4 @@
-module spuro
+module github.com/MTG-Thomas/spuro
 
 go 1.24
 

@@ -2,14 +2,14 @@ package analyze
 
 import (
 	"context"
+	"github.com/MTG-Thomas/spuro/internal/config"
+	"github.com/MTG-Thomas/spuro/internal/discovery"
+	gitbackend "github.com/MTG-Thomas/spuro/internal/git"
+	"github.com/MTG-Thomas/spuro/internal/model"
+	"github.com/MTG-Thomas/spuro/internal/process"
 	"os"
 	"path/filepath"
 	"sort"
-	"spuro/internal/config"
-	"spuro/internal/discovery"
-	gitbackend "spuro/internal/git"
-	"spuro/internal/model"
-	"spuro/internal/process"
 	"strconv"
 	"strings"
 )

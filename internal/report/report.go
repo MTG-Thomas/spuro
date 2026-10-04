@@ -3,12 +3,12 @@ package report
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/MTG-Thomas/spuro/internal/discovery"
+	"github.com/MTG-Thomas/spuro/internal/model"
 	"io"
 	"os"
 	"path/filepath"
 	"reflect"
-	"spuro/internal/discovery"
-	"spuro/internal/model"
 	"strings"
 )
 

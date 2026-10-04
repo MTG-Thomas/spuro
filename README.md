@@ -1,5 +1,8 @@
 # Spuro
 
+[![CI](https://github.com/MTG-Thomas/spuro/actions/workflows/ci.yml/badge.svg)](https://github.com/MTG-Thomas/spuro/actions/workflows/ci.yml)
+[![Vulnerability check](https://github.com/MTG-Thomas/spuro/actions/workflows/govulncheck.yml/badge.svg)](https://github.com/MTG-Thomas/spuro/actions/workflows/govulncheck.yml)
+
 Spuro finds traces of development work left behind across Git repositories and
 worktrees. Its question is: **what work on this machine lacks an obvious,
 durable, equivalent copy in the scanned Git estate?**
@@ -9,6 +12,15 @@ unpushed branches, reflog-only history, dropped stashes and unreachable commits.
 Native Git supplies the facts; exact reachability, tree equality and stable patch
 IDs help separate unique work from rebased, cherry-picked or duplicated history.
 Spuro MVP 0.1.0 is a preservation-risk scanner. It performs no cleanup or rescue operations.
+
+## Install
+
+Download an archive from [GitHub Releases](https://github.com/MTG-Thomas/spuro/releases),
+verify SHA256SUMS, and place the executable on PATH. Native Git is required separately.
+Or install with Go: `go install github.com/MTG-Thomas/spuro/cmd/spuro@latest`.
+Adapters are optional; `make build` builds all three executables.
+
+See [maturity](docs/maturity.md), [contributing](CONTRIBUTING.md), and the [MIT license](LICENSE).
 
 ## Build and scan
 

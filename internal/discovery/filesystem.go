@@ -2,14 +2,14 @@ package discovery
 
 import (
 	"context"
+	"github.com/MTG-Thomas/spuro/internal/config"
+	gitbackend "github.com/MTG-Thomas/spuro/internal/git"
+	"github.com/MTG-Thomas/spuro/internal/model"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
-	"spuro/internal/config"
-	gitbackend "spuro/internal/git"
-	"spuro/internal/model"
 	"strings"
 )
 

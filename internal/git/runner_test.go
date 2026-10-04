@@ -2,7 +2,7 @@ package git
 
 import (
 	"context"
-	"spuro/internal/model"
+	"github.com/MTG-Thomas/spuro/internal/model"
 	"strings"
 	"testing"
 )

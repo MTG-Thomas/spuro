@@ -3,7 +3,7 @@ package git
 import (
 	"bytes"
 	"fmt"
-	"spuro/internal/model"
+	"github.com/MTG-Thomas/spuro/internal/model"
 	"strconv"
 	"strings"
 	"time"

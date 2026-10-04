@@ -1,5 +1,5 @@
 package main
 
-import "spuro/internal/plugin"
+import "github.com/MTG-Thomas/spuro/internal/plugin"
 
 func main() { plugin.ExitAdapter("gitwell") }

@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/MTG-Thomas/spuro/internal/process"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
-	"spuro/internal/process"
 	"time"
 )
 

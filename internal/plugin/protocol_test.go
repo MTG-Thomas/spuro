@@ -3,11 +3,11 @@ package plugin
 import (
 	"context"
 	"encoding/json"
+	"github.com/MTG-Thomas/spuro/internal/config"
+	"github.com/MTG-Thomas/spuro/internal/model"
 	"os"
 	"path/filepath"
 	"runtime"
-	"spuro/internal/config"
-	"spuro/internal/model"
 	"strings"
 	"testing"
 )
