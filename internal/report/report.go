@@ -137,7 +137,20 @@ func WriteOutside(path string, r *model.Result, write func(io.Writer) error) err
 		}
 	}
 	for _, root := range protected {
-		if root != "" && Within(target, root) {
+		if root == "" {
+			continue
+		}
+		canonical, err := discovery.Canonical(root)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				return fmt.Errorf("resolve protected path %q: %w", root, err)
+			}
+			canonical, err = filepath.Abs(root)
+			if err != nil {
+				return err
+			}
+		}
+		if Within(target, canonical) {
 			return fmt.Errorf("refusing report output inside scanned source/repository: %s", target)
 		}
 	}

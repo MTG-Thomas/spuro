@@ -26,6 +26,10 @@ func TestOutputCannotModifyRepositories(t *testing.T) {
 		if e := WriteOutside(filepath.Join(link, "report.json"), &r, render); e == nil {
 			t.Fatal("wrote via symlink")
 		}
+		alias := model.Result{Scan: model.Scan{Roots: []string{link}}}
+		if e := WriteOutside(filepath.Join(root, "alias-report.json"), &alias, render); e == nil {
+			t.Fatal("wrote through alternate spelling of protected root")
+		}
 	}
 	if _, e := os.Stat(filepath.Join(root, "report.json")); !os.IsNotExist(e) {
 		t.Fatal("report exists inside source")

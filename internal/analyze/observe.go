@@ -146,6 +146,9 @@ func observe(ctx context.Context, g *gitbackend.Runner, r model.Repository, cfg 
 			continue
 		}
 		c.Path = filepath.Clean(p)
+		if canonical, err := discovery.Canonical(c.Path); err == nil {
+			c.Path = canonical
+		}
 		known[c.Path] = true
 		observed = append(observed, c)
 	}

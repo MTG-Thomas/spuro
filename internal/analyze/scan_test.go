@@ -5,14 +5,32 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/MTG-Thomas/spuro/internal/config"
+	"github.com/MTG-Thomas/spuro/internal/discovery"
 	"github.com/MTG-Thomas/spuro/internal/model"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 )
+
+// Canonical temp paths match Git's path spelling on macOS and Windows.
+func fixtureTempDir(t *testing.T) string {
+	t.Helper()
+	p, err := discovery.Canonical(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+func unusualPath(s string) string {
+	if runtime.GOOS == "windows" {
+		return strings.ReplaceAll(s, "\n", " ")
+	}
+	return s
+}
 
 // These deliberately mutated repositories are disposable test fixtures only.
 // No production Git mutation goes through this helper or the scanner runner.
@@ -127,13 +145,13 @@ func hasFinding(r model.Result, kind string, oid string) bool {
 	return false
 }
 func TestEstateDiscoveryStatusAndReadOnly(t *testing.T) {
-	root := t.TempDir()
-	repo := initRepo(t, root, "normal space ü\nrepo")
+	root := fixtureTempDir(t)
+	repo := initRepo(t, root, unusualPath("normal space ü\nrepo"))
 	nested := initRepo(t, repo, "nested")
 	_ = nested
-	linked := filepath.Join(root, "linked ü\ncheckout")
+	linked := filepath.Join(root, unusualPath("linked ü\ncheckout"))
 	fixtureGit(t, repo, "worktree", "add", "-q", "-b", "linked", linked)
-	external := filepath.Join(t.TempDir(), "external")
+	external := filepath.Join(fixtureTempDir(t), "external")
 	fixtureGit(t, repo, "worktree", "add", "-q", "--detach", external)
 	bare := filepath.Join(root, "bare.git")
 	fixtureGit(t, root, "clone", "--bare", "-q", repo, bare)
@@ -147,9 +165,9 @@ func TestEstateDiscoveryStatusAndReadOnly(t *testing.T) {
 	put(t, broken, ".git", "gitdir: /definitely/not/a/gitdir\n")
 	put(t, broken, "important.txt", "do not lose\n")
 	put(t, repo, "file.txt", "modified\n")
-	put(t, repo, "staged ü\nfile", "staged\n")
-	fixtureGit(t, repo, "add", "staged ü\nfile")
-	put(t, linked, "untracked ü\nfile", "unique untracked\n")
+	put(t, repo, unusualPath("staged ü\nfile"), "staged\n")
+	fixtureGit(t, repo, "add", unusualPath("staged ü\nfile"))
+	put(t, linked, unusualPath("untracked ü\nfile"), "unique untracked\n")
 	before := snapshot(t, root)
 	outsideBefore := snapshot(t, external)
 	r := nativeScan(t, root)
@@ -173,7 +191,7 @@ func TestEstateDiscoveryStatusAndReadOnly(t *testing.T) {
 		}
 		if c.Path == linked {
 			found = true
-			if len(c.Untracked) != 1 || c.Untracked[0] != "untracked ü\nfile" {
+			if len(c.Untracked) != 1 || c.Untracked[0] != unusualPath("untracked ü\nfile") {
 				t.Fatalf("untracked parsing: %+v", c)
 			}
 		}
@@ -183,7 +201,7 @@ func TestEstateDiscoveryStatusAndReadOnly(t *testing.T) {
 	}
 }
 func TestBranchUpstreamsAndEquivalence(t *testing.T) {
-	root := t.TempDir()
+	root := fixtureTempDir(t)
 	repo := initRepo(t, root, "repo")
 	base := fixtureGit(t, repo, "rev-parse", "HEAD")
 	fixtureGit(t, repo, "remote", "add", "origin", "https://example.test/repo.git")
@@ -243,7 +261,7 @@ func TestBranchUpstreamsAndEquivalence(t *testing.T) {
 	}
 }
 func TestReflogUnreachableDetachedAndDroppedStash(t *testing.T) {
-	root := t.TempDir()
+	root := fixtureTempDir(t)
 	repo := initRepo(t, root, "repo")
 	base := fixtureGit(t, repo, "rev-parse", "HEAD")
 	fixtureGit(t, repo, "checkout", "-qb", "ephemeral")
@@ -260,7 +278,7 @@ func TestReflogUnreachableDetachedAndDroppedStash(t *testing.T) {
 	fixtureGit(t, repo, "worktree", "add", "-q", "--detach", linked)
 	detached := commitFile(t, linked, "detached", "unique detached\n", "detached work")
 	put(t, repo, "file.txt", "stash tracked\n")
-	put(t, repo, "forgotten ü\nfile", "unique dropped stash payload\n")
+	put(t, repo, unusualPath("forgotten ü\nfile"), "unique dropped stash payload\n")
 	fixtureGit(t, repo, "stash", "push", "-u", "-m", "forgotten stash")
 	dropped := fixtureGit(t, repo, "rev-parse", "refs/stash")
 	fixtureGit(t, repo, "stash", "drop")
@@ -285,7 +303,7 @@ func TestReflogUnreachableDetachedAndDroppedStash(t *testing.T) {
 	}
 	found := false
 	for _, v := range l.StashFiles {
-		if v.Path == "forgotten ü\nfile" && len(v.DurableCopies) == 0 {
+		if v.Path == unusualPath("forgotten ü\nfile") && len(v.DurableCopies) == 0 {
 			found = true
 		}
 	}
@@ -294,13 +312,13 @@ func TestReflogUnreachableDetachedAndDroppedStash(t *testing.T) {
 	}
 }
 func TestConflictedCheckout(t *testing.T) {
-	root := t.TempDir()
+	root := fixtureTempDir(t)
 	repo := initRepo(t, root, "conflict")
 	fixtureGit(t, repo, "checkout", "-qb", "other")
 	commitFile(t, repo, "file.txt", "other\n", "other")
 	fixtureGit(t, repo, "checkout", "-q", "main")
 	commitFile(t, repo, "file.txt", "main\n", "main")
-	cmd := exec.Command("git", "-c", "commit.gpgsign=false", "-C", repo, "merge", "other")
+	cmd := exec.Command("git", "-c", "commit.gpgsign=false", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.test", "-C", repo, "merge", "other")
 	if cmd.Run() == nil {
 		t.Fatal("fixture expected conflict")
 	}
@@ -316,7 +334,7 @@ func TestConflictedCheckout(t *testing.T) {
 	}
 }
 func TestCrossClonePreservationAndStableIDs(t *testing.T) {
-	root := t.TempDir()
+	root := fixtureTempDir(t)
 	repo := initRepo(t, root, "first")
 	commitFile(t, repo, "durable", "preserved content\n", "durable")
 	second := filepath.Join(root, "second")
@@ -341,7 +359,7 @@ func TestCrossClonePreservationAndStableIDs(t *testing.T) {
 	}
 }
 func TestRebasedEquivalenceAndCurrentStash(t *testing.T) {
-	root := t.TempDir()
+	root := fixtureTempDir(t)
 	repo := initRepo(t, root, "rebase")
 	base := fixtureGit(t, repo, "rev-parse", "HEAD")
 	fixtureGit(t, repo, "checkout", "-qb", "before")
@@ -369,7 +387,7 @@ func TestRebasedEquivalenceAndCurrentStash(t *testing.T) {
 	}
 }
 func TestStaleRegistrationAndUnbornRepo(t *testing.T) {
-	root := t.TempDir()
+	root := fixtureTempDir(t)
 	repo := initRepo(t, root, "registered")
 	path := filepath.Join(root, "missing")
 	fixtureGit(t, repo, "worktree", "add", "-q", "--detach", path)
@@ -389,7 +407,7 @@ func TestStaleRegistrationAndUnbornRepo(t *testing.T) {
 	}
 }
 func TestStagedVersionPreservationRisk(t *testing.T) {
-	root := t.TempDir()
+	root := fixtureTempDir(t)
 	repo := initRepo(t, root, "staged")
 	put(t, repo, "file.txt", "unique staged content\n")
 	fixtureGit(t, repo, "add", "file.txt")
@@ -406,7 +424,7 @@ func TestStagedVersionPreservationRisk(t *testing.T) {
 	}
 }
 func TestTrackedStashPatchEquivalentDespiteDifferentBlob(t *testing.T) {
-	root := t.TempDir()
+	root := fixtureTempDir(t)
 	repo := initRepo(t, root, "stash-rebased")
 	body := strings.Repeat("unchanged context\n", 10) + "base\n"
 	base := commitFile(t, repo, "file.txt", body, "larger base")
@@ -440,7 +458,7 @@ func TestTrackedStashPatchEquivalentDespiteDifferentBlob(t *testing.T) {
 	}
 }
 func TestSHA256Objects(t *testing.T) {
-	root := t.TempDir()
+	root := fixtureTempDir(t)
 	repo := filepath.Join(root, "sha256")
 	os.MkdirAll(repo, 0700)
 	cmd := exec.Command("git", "-C", repo, "init", "-q", "-b", "main", "--object-format=sha256")
@@ -456,7 +474,7 @@ func TestSHA256Objects(t *testing.T) {
 	}
 }
 func TestWeakNamespaceRefsGroupIntoTips(t *testing.T) {
-	root := t.TempDir()
+	root := fixtureTempDir(t)
 	repo := initRepo(t, root, "weak")
 	fixtureGit(t, repo, "checkout", "-qb", "temporary")
 	one := commitFile(t, repo, "one", "one\n", "one")
