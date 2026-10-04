@@ -50,6 +50,19 @@ repository paths. Without `--output`, results go to stdout.
 The human report shows all `PRESERVE_FIRST` findings, the first 20 `REVIEW`
 findings, and counts of quieter findings. JSON retains all observations.
 
+## Audit available SSH hosts too
+
+A laptop-only scan can miss development work on SSH-accessible developer hosts.
+Include known, authorized SSH hosts in an estate audit: inspect configured aliases,
+confirm their identities, discover source roots on each host, and run a separate
+read-only native scan there. Keep host-qualified evidence and coverage gaps.
+An SSH-accessible checkout can contain the only copy of dirty or stranded work.
+
+This is an operator/agent workflow, not built-in remote-host scanning. Spuro scans
+local roots on the host where it runs; it does not enumerate SSH hosts, connect,
+or correlate separate host reports automatically. Use the
+[Windows and SSH audit guide](docs/windows-ssh-audit.md), which includes an agent prompt.
+
 ## Configuration
 
 Spuro loads the platform user configuration (`~/.config/spuro/config.toml` on
