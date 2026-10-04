@@ -95,3 +95,33 @@ func TestAdapterJSONAndManifest(t *testing.T) {
 		t.Fatalf("%+v %v", o, e)
 	}
 }
+func TestRepeatedPluginObservationsAreDeduplicated(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX fixture")
+	}
+	p := filepath.Join(t.TempDir(), "plugin")
+	body := `#!/bin/sh
+if [ "$1" = manifest ]; then printf '%s' '{"protocol_version":1,"name":"test","read_only":true}'; else printf '%s' '{"protocol_version":1,"observations":[{"repository":"/source/repo","kind":"hint","subject":"branch","message":"same","metadata":{"dirty":false}},{"repository":"/source/repo","kind":"hint","subject":"branch","message":"same","metadata":{"dirty":false}},{"repository":"/source/repo","kind":"hint","subject":"branch","message":"changed","metadata":{"dirty":true}}]}'; fi
+`
+	os.WriteFile(p, []byte(body), 0700)
+	cfg := config.Defaults()
+	cfg.Plugins["test"] = config.Plugin{Command: p, ReadOnlyVerified: true, Documentation: "fixture"}
+	r := nativeResult()
+	Run(context.Background(), cfg, []string{"test"}, &r)
+	if len(r.Findings) != 2 || len(r.Repositories[0].Evidence) != 2 || len(r.Findings[1].Evidence) != 2 || r.Plugins[0].Observations != 2 {
+		t.Fatalf("duplicate or changed assertions mishandled: %+v %+v", r.Findings, r.Plugins)
+	}
+}
+func TestAdapterRejectsPathsThatCouldBecomeActions(t *testing.T) {
+	for _, name := range []string{"gitwell", "stalewood"} {
+		var out strings.Builder
+		request := `{"protocol_version":1,"roots":["--prune"],"repositories":[{"path":"report"}]}`
+		if e := AdapterMain(name, []string{"scan"}, strings.NewReader(request), &out); e != nil {
+			t.Fatal(e)
+		}
+		var response Response
+		if e := json.Unmarshal([]byte(out.String()), &response); e != nil || len(response.Diagnostics) != 1 || !strings.Contains(response.Diagnostics[0], "refused nonabsolute") {
+			t.Fatalf("unsafe path was not rejected: %s", out.String())
+		}
+	}
+}

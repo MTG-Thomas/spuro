@@ -74,7 +74,7 @@ func snapshot(t *testing.T, root string) map[string]string {
 		if e != nil {
 			return e
 		}
-		out[p] = fmt.Sprintf("%s %x", fi.Mode(), sha256.Sum256(b))
+		out[p] = fmt.Sprintf("%s %s %x", fi.Mode(), fi.ModTime().UTC().Format("2006-01-02T15:04:05.999999999Z07:00"), sha256.Sum256(b))
 		return nil
 	})
 	if e != nil {
@@ -453,5 +453,30 @@ func TestSHA256Objects(t *testing.T) {
 	nr := repoAt(t, r, repo)
 	if nr.ObjectFormat != "sha256" || len(oid) != 64 || nr.Commits[0].OID != oid || !hasFinding(r, "untracked_unique", "") {
 		t.Fatalf("SHA256 state: %+v", nr)
+	}
+}
+func TestWeakNamespaceRefsGroupIntoTips(t *testing.T) {
+	root := t.TempDir()
+	repo := initRepo(t, root, "weak")
+	fixtureGit(t, repo, "checkout", "-qb", "temporary")
+	one := commitFile(t, repo, "one", "one\n", "one")
+	two := commitFile(t, repo, "two", "two\n", "two")
+	fixtureGit(t, repo, "update-ref", "refs/jj/keep/"+one, one)
+	fixtureGit(t, repo, "update-ref", "refs/jj/keep/"+two, two)
+	fixtureGit(t, repo, "checkout", "-q", "main")
+	fixtureGit(t, repo, "branch", "-D", "temporary")
+	r := nativeScan(t, root)
+	nr := repoAt(t, r, repo)
+	tips := 0
+	for _, l := range nr.Lineages {
+		if l.Kind == "unknown_ref" {
+			tips++
+			if l.TipOID != two {
+				t.Fatal("ancestral keep ref became its own finding")
+			}
+		}
+	}
+	if tips != 1 {
+		t.Fatalf("got %d weak namespace tips", tips)
 	}
 }

@@ -17,7 +17,11 @@ CLI and output tests cover interspersed flags, JSON, invalid flags and report
 paths resolving into repositories through symlinks.
 
 Production scanning invokes only gated native read commands. Mutations used for
-fixture construction are confined to temporary test directories. Tests are not
+fixture construction are confined to temporary test directories. Modified timestamps are checked as well as bytes/modes. Weak-ref namespaces
+(such as legacy keep/snapshot refs) are grouped into tips rather than treated as
+thousands of unrelated findings. Repeated plugin observations are deduplicated;
+changed assertions are retained as separate evidence on the same finding.
+Tests are not
 signing/release workflows; project commits are signed separately.
 
 The live acceptance estate uses the source roots from the earlier read-only audit,

@@ -13,10 +13,12 @@ import (
 )
 
 type correlation struct {
-	works   []*repoWork
-	objects map[string][]model.Copy
-	trees   map[string][]location
-	patches map[string][]location
+	works           []*repoWork
+	objects         map[string][]model.Copy
+	trees           map[string][]location
+	patches         map[string][]location
+	exactCache      map[string][]model.Copy
+	equivalentCache map[string][]model.Copy
 }
 type location struct {
 	w   *repoWork
@@ -25,7 +27,7 @@ type location struct {
 
 func key(w *repoWork, oid string) string { return w.Repo.ObjectFormat + ":" + oid }
 func correlate(ctx context.Context, g *gitbackend.Runner, works []*repoWork, cfg config.Config) *correlation {
-	x := &correlation{works: works, objects: map[string][]model.Copy{}, trees: map[string][]location{}, patches: map[string][]location{}}
+	x := &correlation{works: works, objects: map[string][]model.Copy{}, trees: map[string][]location{}, patches: map[string][]location{}, exactCache: map[string][]model.Copy{}, equivalentCache: map[string][]model.Copy{}}
 	cache := map[string]string{}
 	attempted := map[string]bool{}
 	idsByRepo := make([][]string, len(works))
@@ -144,15 +146,24 @@ func (x *correlation) refs(loc location, subject *repoWork, exclude string) []mo
 	return out
 }
 func (x *correlation) exact(w *repoWork, oid, exclude string) []model.Copy {
+	cacheKey := copyCacheKey(w, oid, exclude)
+	if copies, ok := x.exactCache[cacheKey]; ok {
+		return copies
+	}
 	out := []model.Copy{}
 	for _, other := range x.works {
 		if other.Repo.ObjectFormat == w.Repo.ObjectFormat && other.Normal[oid] {
 			out = append(out, x.refs(location{other, oid}, w, exclude)...)
 		}
 	}
+	x.exactCache[cacheKey] = out
 	return out
 }
 func (x *correlation) equivalent(w *repoWork, oid, exclude string, tree bool) []model.Copy {
+	cacheKey := fmt.Sprint(tree) + copyCacheKey(w, oid, exclude)
+	if copies, ok := x.equivalentCache[cacheKey]; ok {
+		return copies
+	}
 	c := w.Commits[oid]
 	out := []model.Copy{}
 	if c == nil {
@@ -178,6 +189,7 @@ func (x *correlation) equivalent(w *repoWork, oid, exclude string, tree bool) []
 		}
 		out = append(out, copies...)
 	}
+	x.equivalentCache[cacheKey] = out
 	return out
 }
 func analyzeLineages(ctx context.Context, g *gitbackend.Runner, x *correlation, w *repoWork, cfg config.Config) {
@@ -186,11 +198,50 @@ func analyzeLineages(ctx context.Context, g *gitbackend.Runner, x *correlation, 
 		w.Repo.Lineages = append(w.Repo.Lineages, l)
 	}
 	used := map[string]bool{}
+	unknownRoots := map[string]bool{}
+	unknownRefs := map[string]string{}
+	namespaces := map[string]int{}
 	for _, r := range w.Repo.Refs {
 		if r.Class == model.Unknown && validOID(r.CommitOID) {
-			add("unknown_ref", r.Name, "", r.CommitOID)
-			used[r.CommitOID] = true
+			unknownRoots[r.CommitOID] = true
+			if unknownRefs[r.CommitOID] == "" {
+				unknownRefs[r.CommitOID] = r.Name
+			}
+			parts := strings.Split(r.Name, "/")
+			namespace := r.Name
+			if len(parts) > 2 {
+				namespace = strings.Join(parts[:3], "/")
+			}
+			namespaces[namespace]++
 		}
+	}
+	// Group weak-ref ancestry into tips instead of one finding per keep/snapshot
+	// ref. Starting with parents preserves roots that have no descendant root.
+	todo := []string{}
+	for oid := range unknownRoots {
+		if c := w.Commits[oid]; c != nil {
+			todo = append(todo, c.Parents...)
+		}
+	}
+	seenParents := map[string]bool{}
+	for len(todo) > 0 {
+		oid := todo[len(todo)-1]
+		todo = todo[:len(todo)-1]
+		if seenParents[oid] {
+			continue
+		}
+		seenParents[oid] = true
+		delete(unknownRoots, oid)
+		if c := w.Commits[oid]; c != nil {
+			todo = append(todo, c.Parents...)
+		}
+	}
+	for _, oid := range sortedKeys(unknownRoots) {
+		add("unknown_ref", unknownRefs[oid], "", oid)
+		used[oid] = true
+	}
+	if len(namespaces) > 0 {
+		evidence(w, "refs", "weak-namespace-tip-grouping", w.Repo.ID, map[string]any{"namespaces": namespaces, "tip_oids": sortedKeys(unknownRoots), "raw_refs_retained": true})
 	}
 	for i := range w.Repo.Branches {
 		b := &w.Repo.Branches[i]
@@ -246,10 +297,10 @@ func lineage(ctx context.Context, g *gitbackend.Runner, x *correlation, w *repoW
 	trees := x.equivalent(w, oid, exclude, true)
 	if len(exact) > 0 {
 		l.Equivalence = model.ExactlyPreserved
-		l.EquivalentCopies = exact
+		l.EquivalentCopies = append([]model.Copy{}, exact...)
 	} else if len(trees) > 0 {
 		l.Equivalence = model.TreeEquivalent
-		l.EquivalentCopies = trees
+		l.EquivalentCopies = append([]model.Copy{}, trees...)
 	}
 	var baseSet map[string]bool
 	if w.Repo.PrimaryOID != "" && w.Repo.Primary != exclude {
@@ -464,7 +515,7 @@ func classify(w *repoWork, scopeComplete bool) []model.Finding {
 			confidence = model.Medium
 		}
 		if len(untracked) > 0 {
-			add(model.PreserveFirst, "untracked_unique", c.Path, c.Branch, c.HeadOID, fmt.Sprintf("%d untracked file versions have no identical blob in scanned normal refs.", len(untracked)), untracked, ev, confidence)
+			add(model.PreserveFirst, "untracked_unique", c.Path, c.Branch, c.HeadOID, fmt.Sprintf("%d untracked file versions have no identical blob found among scanned normal refs.", len(untracked)), untracked, ev, confidence)
 		}
 		if len(c.Modified)+len(c.Staged) > 0 || uncertain {
 			sev := model.Review
@@ -630,4 +681,12 @@ func sortedGroupKeys(m map[string][]string) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+func copyCacheKey(w *repoWork, oid, exclude string) string {
+	k := key(w, oid)
+	if exclude != "" {
+		k += "\x00" + w.Repo.ID + "\x00" + exclude
+	}
+	return k
 }

@@ -38,6 +38,10 @@ against the following upstream documentation/source:
   commit `1a9a61742efd45c7f9ceaf70a1304c34bbd16169`: `--json --quiet PATH`,
   with no prune/force flags. JSON is normalized per worktree.
 
+Backend paths must be absolute, so stdin cannot turn a root into a destructive
+flag or subcommand. Repeated observations collapse into one finding; differing
+assertions remain separate evidence and never alter native facts.
+
 For a custom plugin, configuration must record an independent safety review:
 
 ```toml

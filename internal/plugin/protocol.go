@@ -182,9 +182,32 @@ func Run(ctx context.Context, c config.Config, names []string, result *model.Res
 				continue
 			}
 			r := &result.Repositories[index]
-			ev := model.Evidence{ID: model.ID("ev-", name, r.ID, o.Kind, o.Subject, o.Checkout, o.OID, o.Message), Provider: name, ProviderVersion: manifest.Version, Operation: "plugin", Fact: o.Kind, Subject: o.Subject, Data: map[string]any{"message": o.Message, "metadata": o.Metadata, "claimed_severity": o.Severity, "native_authority": false}}
+			metadataJSON, _ := json.Marshal(o.Metadata)
+			ev := model.Evidence{ID: model.ID("ev-", name, r.ID, o.Kind, o.Subject, o.Checkout, o.OID, o.Message, string(metadataJSON)), Provider: name, ProviderVersion: manifest.Version, Operation: "plugin", Fact: o.Kind, Subject: o.Subject, Data: map[string]any{"message": o.Message, "metadata": o.Metadata, "claimed_severity": o.Severity, "native_authority": false}}
+			exists := false
+			for _, old := range r.Evidence {
+				if old.ID == ev.ID {
+					exists = true
+					break
+				}
+			}
+			if exists {
+				continue
+			}
 			r.Evidence = append(r.Evidence, ev)
-			result.Findings = append(result.Findings, model.Finding{ID: model.ID("SPURO-", name, r.ID, o.Kind, o.Subject, o.Checkout, o.OID), Severity: model.Info, Kind: "plugin_observation", RepoID: r.ID, Checkout: o.Checkout, Ref: o.Subject, OID: o.OID, Paths: []string{}, Summary: o.Message, Evidence: []string{ev.ID}, Confidence: model.Low, SuggestedAction: "Verify this supplemental assertion with native evidence; it cannot override native facts."})
+			findingID := model.ID("SPURO-", name, r.ID, o.Kind, o.Subject, o.Checkout, o.OID)
+			findingIndex := -1
+			for i := range result.Findings {
+				if result.Findings[i].ID == findingID {
+					findingIndex = i
+					break
+				}
+			}
+			if findingIndex >= 0 {
+				result.Findings[findingIndex].Evidence = append(result.Findings[findingIndex].Evidence, ev.ID)
+			} else {
+				result.Findings = append(result.Findings, model.Finding{ID: findingID, Severity: model.Info, Kind: "plugin_observation", RepoID: r.ID, Checkout: o.Checkout, Ref: o.Subject, OID: o.OID, Paths: []string{}, Summary: o.Message, Evidence: []string{ev.ID}, Confidence: model.Low, SuggestedAction: "Verify this supplemental assertion with native evidence; it cannot override native facts."})
+			}
 			run.Observations++
 		}
 		run.Status = "ok"

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sort"
 	"spuro/internal/process"
 	"time"
@@ -14,6 +15,9 @@ import (
 // AdapterMain invokes only the documented JSON reporting modes audited for
 // GitWell 0.1.1 and stalewood 0.1.6. No report/triage/prune command is permitted.
 func AdapterMain(name string, args []string, in io.Reader, out io.Writer) error {
+	if name != "gitwell" && name != "stalewood" {
+		return fmt.Errorf("unknown adapter %q", name)
+	}
 	if len(args) != 1 {
 		return fmt.Errorf("usage: spuro-plugin-%s manifest|scan", name)
 	}
@@ -43,6 +47,10 @@ func AdapterMain(name string, args []string, in io.Reader, out io.Writer) error 
 	sort.Strings(paths)
 	ctx := context.Background()
 	for _, path := range unique(paths) {
+		if !filepath.IsAbs(path) {
+			response.Diagnostics = append(response.Diagnostics, "refused nonabsolute backend path: "+path)
+			continue
+		}
 		argv := []string{path, "--json"}
 		if name == "stalewood" {
 			argv = []string{"--json", "--quiet", path}

@@ -330,6 +330,9 @@ func observe(ctx context.Context, g *gitbackend.Runner, r model.Repository, cfg 
 		}
 	}
 	for _, ref := range w.Repo.Refs {
+		if ref.Class != model.DurableRef && ref.Class != model.RemoteTracking {
+			continue
+		}
 		reach := walk(w, ref.CommitOID)
 		w.RefReach[ref.Name] = reach
 		if ref.Class == model.DurableRef || ref.Class == model.RemoteTracking {
