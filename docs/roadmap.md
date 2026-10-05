@@ -11,3 +11,8 @@
 Remote-tracking refs can be stale; this scanner does not fetch or verify backups.
 Ignored files and unscanned locations cannot support absence claims. An equivalent
 patch is evidence about content, not proof of semantic obsolescence or safe deletion.
+
+Session archaeology follows [ADR 0001](adr/0001-session-archaeology.md): per-intent
+completion and explicit coverage precede derived session summaries. Normalized
+models exist; CLI ingestion/correlation are not yet available. The deja-vu adapter
+is blocked on a [verified read-only query surface](session-provider-safety.md).
