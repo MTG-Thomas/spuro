@@ -19,3 +19,9 @@ The binary index remains unsupported; see [usage/limits](sessions.md) and the
 [reviewed artifact boundary](session-provider-safety.md). Live acceptance, stable
 upstream versioned exports, multi-repository association, richer history predicates,
 and semantic review remain future work.
+
+UNKNOWN reconciliation now has an artifact-only pass. Remaining gaps include
+validated imports of independent audit schemas, live private-corpus acceptance,
+explicit multi-repository intent target binding, richer cached file/blob criteria,
+and reviewed tracker evidence ingestion. Fuzzy suggestions remain inspection
+leads; semantic completion and durable preservation are not inferred.

@@ -2,6 +2,9 @@
 
 ## Unreleased (0.2.0-dev)
 
+- Offline UNKNOWN reconciliation over saved session JSON, with exact sighting groups,
+  cached predicate witnesses, qualified links, coverage gaps, and separate fuzzy suggestions.
+
 - Read existing normalized session artifacts and reviewed deja-vu sync JSONL without provider execution.
 - Correlate per-intent Git/content predicates, dirty state, explicit continuations and cancellations.
 - Report derived session summaries with independent coverage/confidence and source provenance.

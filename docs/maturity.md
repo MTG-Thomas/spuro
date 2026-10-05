@@ -22,3 +22,10 @@ The unreleased reconciliation report has a synthetic 2,000-candidate regression
 fixture: background UNKNOWN records remain in JSON without flooding the default
 shortlist. Session phase timings are instrumented; the reported Windows latency
 has not been independently profiled or reproduced locally.
+
+Offline UNKNOWN reconciliation is covered by synthetic duplicate sightings,
+explicit cancellation, cached commit witnesses, cross-host and ambiguous-scope
+negative cases, incomplete chronology, text-free output, and a CLI test with no
+Git/provider executable on PATH. The laptop-private candidate corpus was not
+accessible from the implementation host; no claim of validating its 2,165 UNKNOWN
+sightings is made. Existing snapshots can now be reconciled without a new audit.

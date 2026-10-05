@@ -150,3 +150,52 @@ preparation durations. Serialization duration is emitted to stderr after writing
 not embedded retrospectively in its own output. These measurements are not a
 profile of the private Windows corpus; repeated path canonicalization remains an
 unverified performance hypothesis.
+
+## Proactive UNKNOWN pass without another audit
+
+Run against an existing **Spuro session snapshot**, not a private audit tool's
+candidate CSV or undocumented JSON schema:
+
+```sh
+spuro sessions reconcile --input existing-sessions.json
+spuro sessions reconcile --input existing-sessions.json --json --output reconciliation.json
+spuro sessions reconcile --input existing-sessions.json --no-transcript-text --json
+```
+
+This command reads one supplied file, invokes no Git or provider executable, and
+performs no repository discovery, canonicalization, index refresh, or network
+query. Input and represented repository/source paths are protected against output
+overwrite. Input SHA-256 is retained in the JSON receipt. Large inputs are bounded
+at 256 MiB; incompatible schemas are refused. A native scan need not be present.
+
+The same pass is included after a normal `sessions` scan. It produces:
+
+- **EVIDENCE_READY**: previously satisfied criteria, exact qualified continuation
+  or later user cancellation records, or cached normal-ref commit/tree/patch
+  witnesses when a complete, unchanged native snapshot was included.
+- **FOLLOW_UP_CANDIDATE**: similar later intent descriptions in the same contextual
+  host/repository, with at least three discriminating tokens and 0.5 token overlap.
+  The later intent's observed state is shown; it does not transfer to the original.
+- **CONCRETE_CANDIDATE**: supplied paths or criteria give an inspection starting point.
+- **BACKGROUND**: insufficient concrete evidence; retained in JSON with gaps.
+
+Exact payload sightings are grouped only within a host-qualified harness/thread.
+All member session/intent references remain. Missing host identity or text-free
+payloads are not merged by an empty description. Distinct threads are never
+merged by fuzzy similarity. At most three fuzzy suggestions per group and twenty
+non-background groups appear in human output; all groups remain in JSON. If none
+have concrete leads, five background groups show their evidence gaps and next
+inspection step instead.
+
+Timestamps of available artifacts are chronological clues, not proof a session
+ended or resumed. Working-directory association is still contextual, particularly
+for multi-repository conversations. Optional/broad board language is flagged for
+scope review. Tracker/PR closure is not queried or interpreted as semantic proof.
+Cached witnesses describe the original scan, not current state or durable backups.
+This pass **never changes per-intent lifecycle states**. Inspect matched evidence
+and original bounded user requests before supplying stronger completion criteria.
+
+`--no-transcript-text` removes candidate descriptions after matching, retaining
+reference IDs and non-prose match reasons. It does not remove identifying paths or
+IDs; keep reports private. The private laptop candidate schema has not been
+validated from this host and is not silently inferred by the offline reader.

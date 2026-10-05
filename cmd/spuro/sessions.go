@@ -19,6 +19,9 @@ import (
 )
 
 func runSessions(ctx context.Context, args []string, out, errout io.Writer) error {
+	if len(args) > 0 && args[0] == "reconcile" {
+		return runSessionReconcile(ctx, args[1:], out)
+	}
 	roots, paths := []string{}, []string{}
 	provider, version, output, sourceHost := "normalized-json", "", "", ""
 	host, err := os.Hostname()
@@ -43,7 +46,7 @@ func runSessions(ctx context.Context, args []string, out, errout io.Writer) erro
 		}
 		switch name {
 		case "--help", "-h":
-			_, err := fmt.Fprintln(out, "Usage: spuro sessions [root...] [--source FILE] [--provider normalized-json|deja-vu] [--deja-export-version 0.21.5|0.21.6] [--source-host HOST] [--host-id HOST] [--json] [--output FILE] [--no-transcript-text] [--include-completed] [--include-native] [--config FILE] [--max-workers N] [--verbose]\nOnly existing explicitly supplied artifacts are read; provider commands never run.")
+			_, err := fmt.Fprintln(out, "Usage: spuro sessions [root...] [--source FILE] [--provider normalized-json|deja-vu] [--deja-export-version 0.21.5|0.21.6] [--source-host HOST] [--host-id HOST] [--json] [--output FILE] [--no-transcript-text] [--include-completed] [--include-native] [--config FILE] [--max-workers N] [--verbose]\nOnly existing explicitly supplied artifacts are read; provider commands never run.\nUse spuro sessions reconcile --input FILE to process a saved snapshot without scanning.")
 			return err
 		case "--source", "--provider", "--deja-export-version", "--source-host", "--host-id", "--output", "--max-workers", "--config":
 			v, err := next()
@@ -205,6 +208,10 @@ func runSessions(ctx context.Context, args []string, out, errout io.Writer) erro
 		result.Native = nil
 	}
 	result.Timings["source_read"] = sourceElapsed
+	unknownStarted := time.Now()
+	queue := sessions.FindUnknowns(ctx, &result)
+	result.UnknownQueue = &queue
+	result.Timings["unknown_reconciliation"] = time.Since(unknownStarted)
 	prepareStarted := time.Now()
 	sessions.Sanitize(&result, noText)
 	result.Timings["report_preparation"] = time.Since(prepareStarted)

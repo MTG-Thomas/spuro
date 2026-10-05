@@ -9,6 +9,15 @@ import (
 // Sanitize mutates only the report in memory, never any artifact. Text-free mode
 // removes provider prose and command/literal bodies after deterministic matching.
 func Sanitize(r *Result, noText bool) {
+	if r.UnknownQueue != nil {
+		for n := range r.UnknownQueue.Groups {
+			g := &r.UnknownQueue.Groups[n]
+			g.Description = Redact(g.Description)
+			if noText {
+				g.Description = ""
+			}
+		}
+	}
 	for si := range r.Sessions {
 		s := &r.Sessions[si]
 		for ii := range s.Intents {
@@ -102,6 +111,11 @@ func Text(w io.Writer, r *Result, includeCompleted bool) error {
 	}
 	if !includeCompleted && len(triage.Candidates) > 0 {
 		fmt.Fprintln(w, "Unverified candidates retained in JSON; use --include-completed for the full reconciliation listing.")
+	}
+	if r.UnknownQueue != nil {
+		if err := UnknownText(w, *r.UnknownQueue); err != nil {
+			return err
+		}
 	}
 	for _, d := range r.Diagnostics {
 		fmt.Fprintf(w, "diagnostic: %s\n", d.Message)

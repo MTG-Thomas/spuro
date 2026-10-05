@@ -17,6 +17,7 @@ import (
 )
 
 type Result struct {
+	UnknownQueue      *UnknownQueue            `json:"unknown_reconciliation,omitempty"`
 	Reconciliation    *Reconciliation          `json:"reconciliation,omitempty"`
 	Timings           map[string]time.Duration `json:"phase_timings_ns"`
 	NativeObservation model.Scan               `json:"native_observation"`
