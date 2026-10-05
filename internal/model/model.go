@@ -8,7 +8,7 @@ import (
 )
 
 const SchemaVersion = 1
-const Version = "0.2.0"
+const Version = "0.3.0-dev"
 
 type Reachability string
 

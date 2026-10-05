@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0-dev (unreleased)
+
+- Suppress UNKNOWN self-suggestions from repeated schema sightings; keep distinct
+  context/kind/payload sightings as identity-review candidates, not later activity.
+- Accept optional versioned offline bounded-user and exact tracker-merge evidence.
+  Require original source-event payload binding and explicit target resolution;
+  never borrow last-assistant timestamps or infer intent targets from cwd.
+- Preserve lifecycle states and coverage gaps; no provider execution or live queries.
+
 ## 0.2.0
 
 - Fix the timing-emission test to allow valid zero-duration observations on Windows.

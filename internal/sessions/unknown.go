@@ -19,27 +19,33 @@ type UnknownQueue struct {
 	Limitations []string       `json:"limitations"`
 }
 type UnknownGroup struct {
-	ID          string            `json:"id"`
-	HostID      string            `json:"host_id"`
-	ThreadID    string            `json:"thread_id"`
-	Description string            `json:"description,omitempty"`
-	Members     []model.IntentRef `json:"members"`
-	Gaps        []string          `json:"gaps"`
-	Matches     []IntentMatch     `json:"deterministic_matches"`
-	Suggestions []IntentMatch     `json:"fuzzy_suggestions"`
-	Priority    string            `json:"inspection_priority"`
-	NextStep    string            `json:"next_step"`
+	ID                 string            `json:"id"`
+	HostID             string            `json:"host_id"`
+	ThreadID           string            `json:"thread_id"`
+	Description        string            `json:"description,omitempty"`
+	Members            []model.IntentRef `json:"members"`
+	Gaps               []string          `json:"gaps"`
+	Matches            []IntentMatch     `json:"deterministic_matches"`
+	Suggestions        []IntentMatch     `json:"fuzzy_suggestions"`
+	IdentityCandidates []IntentMatch     `json:"identity_candidates"`
+	Priority           string            `json:"inspection_priority"`
+	NextStep           string            `json:"next_step"`
 }
 type IntentMatch struct {
-	ObservedState model.IntentState `json:"observed_intent_state,omitempty"`
-	Kind          string            `json:"kind"`
-	SessionID     string            `json:"session_id,omitempty"`
-	IntentID      string            `json:"intent_id,omitempty"`
-	RepoID        string            `json:"repo_id,omitempty"`
-	CriterionID   string            `json:"criterion_id,omitempty"`
-	OID           string            `json:"oid,omitempty"`
-	Reason        string            `json:"reason"`
-	Evidence      []string          `json:"evidence"`
+	OtherWorkForbidden bool                     `json:"other_work_forbidden,omitempty"`
+	RecordID           string                   `json:"record_id,omitempty"`
+	Provenance         *model.ContextProvenance `json:"provenance,omitempty"`
+	AllowedPaths       []string                 `json:"allowed_paths,omitempty"`
+	Tracker            *model.TrackerSubject    `json:"tracker_subject,omitempty"`
+	ObservedState      model.IntentState        `json:"observed_intent_state,omitempty"`
+	Kind               string                   `json:"kind"`
+	SessionID          string                   `json:"session_id,omitempty"`
+	IntentID           string                   `json:"intent_id,omitempty"`
+	RepoID             string                   `json:"repo_id,omitempty"`
+	CriterionID        string                   `json:"criterion_id,omitempty"`
+	OID                string                   `json:"oid,omitempty"`
+	Reason             string                   `json:"reason"`
+	Evidence           []string                 `json:"evidence"`
 }
 type intentRecord struct {
 	session    *model.Session
@@ -126,6 +132,7 @@ func FindUnknowns(ctx context.Context, r *Result) UnknownQueue {
 		}
 	}
 	groups := map[string]int{}
+	contexts := indexContext(r.Sessions)
 	linked := map[string][]*model.Session{}
 	for n := range r.Sessions {
 		later := &r.Sessions[n]
@@ -144,7 +151,11 @@ func FindUnknowns(ctx context.Context, r *Result) UnknownQueue {
 	}
 	// Index discriminating tokens within host/repository context; avoid whole-corpus pair scans.
 	postings := map[string][]int{}
+	identities := map[string][]int{}
 	for n, rec := range records {
+		if rec.session.HostID != "" && strings.TrimSpace(rec.intent.Description) != "" {
+			identities[descriptionIdentity(rec.session, rec.intent)] = append(identities[descriptionIdentity(rec.session, rec.intent)], n)
+		}
 		sc := scope(rec.session)
 		if sc == "" {
 			continue
@@ -164,22 +175,10 @@ func FindUnknowns(ctx context.Context, r *Result) UnknownQueue {
 		}
 		q.Sightings++
 		s, i := rec.session, rec.intent
-		thread := s.ProviderSessionID
-		if thread == "" {
-			thread = s.ID
-		}
-		// Ignore observation IDs/evidence but retain scope and concrete payload in duplicate key.
-		payload, _ := json.Marshal(struct {
-			Description              string
-			Files, Symbols, Commands []string
-			Completion               []model.CriterionGroup
-		}{strings.Join(strings.Fields(i.Description), " "), i.Files, i.Symbols, i.Commands, i.Completion})
-		key := model.ID("unknown-", s.HostID, s.Harness, thread, string(payload))
-		if s.HostID == "" || strings.TrimSpace(i.Description) == "" {
-			key = model.ID("unknown-", s.ID, i.ID, string(payload))
-		}
+		thread := threadIdentity(s)
+		key := unknownGroupKey(s, i)
 		member := model.IntentRef{SessionID: s.ID, IntentID: i.ID}
-		g := UnknownGroup{ID: key, HostID: s.HostID, ThreadID: thread, Description: i.Description, Members: []model.IntentRef{member}, Gaps: []string{}, Matches: []IntentMatch{}, Suggestions: []IntentMatch{}, Priority: "BACKGROUND", NextStep: "clarify the bounded user requirement and attach observable criteria"}
+		g := UnknownGroup{ID: key, HostID: s.HostID, ThreadID: thread, Description: i.Description, Members: []model.IntentRef{member}, IdentityCandidates: []IntentMatch{}, Gaps: []string{}, Matches: []IntentMatch{}, Suggestions: []IntentMatch{}, Priority: "BACKGROUND", NextStep: "clarify the bounded user requirement and attach observable criteria"}
 		lower := strings.ToLower(i.Description)
 		for _, marker := range []string{"optional", "if needed", "maybe", "consider", "task board"} {
 			if strings.Contains(lower, marker) {
@@ -205,6 +204,9 @@ func FindUnknowns(ctx context.Context, r *Result) UnknownQueue {
 		for _, id := range rec.assessment.SatisfiedCriteria {
 			g.Matches = append(g.Matches, IntentMatch{Kind: "already_observed_criterion", CriterionID: id, Reason: "original assessment contains this satisfied predicate; broader intent remains unresolved", Evidence: rec.assessment.Evidence})
 		}
+		contextMatches, contextGaps := matchContext(contexts[s.ID+"\x00"+i.ID], s, i)
+		g.Matches = append(g.Matches, contextMatches...)
+		g.Gaps = append(g.Gaps, contextGaps...)
 		// Exact links are not guessed from thread names or prose.
 		for _, later := range linked[s.ID+"\x00"+i.ID] {
 			if later.HostID != s.HostID || s.HostID == "" || timestamp(s) == nil || timestamp(later) == nil || !timestamp(later).After(*timestamp(s)) {
@@ -264,6 +266,17 @@ func FindUnknowns(ctx context.Context, r *Result) UnknownQueue {
 				}
 			}
 		}
+		for _, n := range identities[descriptionIdentity(s, i)] {
+			other := records[n]
+			if other.session.ID == s.ID || unknownGroupKey(other.session, other.intent) == key {
+				continue
+			}
+			if len(g.IdentityCandidates) == 3 {
+				g.Gaps = append(g.Gaps, "additional identity candidates omitted after three references")
+				break
+			}
+			g.IdentityCandidates = append(g.IdentityCandidates, IntentMatch{Kind: "same_thread_description_sighting", SessionID: other.session.ID, IntentID: other.intent.ID, Reason: "same host-qualified provider thread and exact description; context/kind/payload may differ; reconcile identity, not independent later activity", Evidence: other.intent.Evidence})
+		}
 		// Fuzzy candidates are bounded and sorted by input order, never lifecycle proof.
 		candidates := map[int]bool{}
 		words := tokens(i.Description)
@@ -282,7 +295,7 @@ func FindUnknowns(ctx context.Context, r *Result) UnknownQueue {
 		for _, n := range indexes {
 			other := records[n]
 			t := timestamp(other.session)
-			if other.session.ID == s.ID || t == nil || !t.After(*timestamp(s)) || !overlap(words, tokens(other.intent.Description)) {
+			if other.session.ID == s.ID || unknownGroupKey(other.session, other.intent) == key || descriptionIdentity(other.session, other.intent) == descriptionIdentity(s, i) || t == nil || !t.After(*timestamp(s)) || !overlap(words, tokens(other.intent.Description)) {
 				continue
 			}
 			if len(g.Suggestions) >= 3 {
@@ -301,14 +314,28 @@ func FindUnknowns(ctx context.Context, r *Result) UnknownQueue {
 		} else if len(g.Suggestions) > 0 {
 			g.Priority = "FOLLOW_UP_CANDIDATE"
 			g.NextStep = "inspect suggested later intents for completion, cancellation, or revised scope"
+		} else if len(g.IdentityCandidates) > 0 {
+			g.Priority = "CONCRETE_CANDIDATE"
+			g.NextStep = "reconcile schema/context identity before treating sightings as later activity"
 		} else if len(i.Files) > 0 || len(i.Completion) > 0 {
 			g.Priority = "CONCRETE_CANDIDATE"
 			g.NextStep = "resolve intended repository, then inspect supplied paths and missing criteria"
+		}
+		for _, m := range contextMatches {
+			if m.Kind == "bounded_user_request_record" {
+				if m.OtherWorkForbidden {
+					g.NextStep = "inspect bounded user request and authorized paths; do not resume the whole task board"
+				} else {
+					g.NextStep = "inspect the user request before inferring whole-board authorization or supersession"
+				}
+				break
+			}
 		}
 		if n, ok := groups[key]; ok {
 			q.Groups[n].Members = append(q.Groups[n].Members, member)
 			q.Groups[n].Matches = append(q.Groups[n].Matches, g.Matches...)
 			q.Groups[n].Suggestions = append(q.Groups[n].Suggestions, g.Suggestions...)
+			q.Groups[n].IdentityCandidates = append(q.Groups[n].IdentityCandidates, g.IdentityCandidates...)
 			q.Groups[n].Gaps = append(q.Groups[n].Gaps, g.Gaps...)
 			if priorityRank(g.Priority) < priorityRank(q.Groups[n].Priority) {
 				q.Groups[n].Priority = g.Priority
@@ -324,6 +351,10 @@ func FindUnknowns(ctx context.Context, r *Result) UnknownQueue {
 		g := &q.Groups[n]
 		g.Matches = uniqueMatches(g.Matches)
 		g.Suggestions = uniqueMatches(g.Suggestions)
+		g.IdentityCandidates = uniqueMatches(g.IdentityCandidates)
+		if len(g.IdentityCandidates) > 3 {
+			g.IdentityCandidates = g.IdentityCandidates[:3]
+		}
 		if len(g.Suggestions) > 3 {
 			g.Suggestions = g.Suggestions[:3]
 			g.Gaps = append(g.Gaps, "additional fuzzy matches omitted after three suggestions")
@@ -373,7 +404,13 @@ func UnknownText(w interface{ Write([]byte) (int, error) }, q UnknownQueue) erro
 			fmt.Fprintf(w, "  host %q; thread %q; inspect %s / %s\n", g.HostID, g.ThreadID, g.Members[0].SessionID, g.Members[0].IntentID)
 		}
 		for _, m := range g.Matches {
+			if len(m.AllowedPaths) > 0 {
+				fmt.Fprintf(w, "  bounded paths: %v\n", m.AllowedPaths)
+			}
 			fmt.Fprintf(w, "  observed: %s — %s\n", m.Kind, m.Reason)
+		}
+		for _, m := range g.IdentityCandidates {
+			fmt.Fprintf(w, "  identity candidate: %s / %s — %s\n", m.SessionID, m.IntentID, m.Reason)
 		}
 		for _, m := range g.Suggestions {
 			fmt.Fprintf(w, "  suggestion: %s / %s (observed %s) — %s\n", m.SessionID, m.IntentID, m.ObservedState, m.Reason)
@@ -412,4 +449,28 @@ func uniqueMatches(in []IntentMatch) []IntentMatch {
 		}
 	}
 	return out
+}
+
+func threadIdentity(s *model.Session) string {
+	if s.ProviderSessionID != "" {
+		return s.ProviderSessionID
+	}
+	return s.ID
+}
+func descriptionIdentity(s *model.Session, i *model.Intent) string {
+	return model.ID("description-", s.HostID, s.Harness, threadIdentity(s), strings.Join(strings.Fields(i.Description), " "))
+}
+func unknownGroupKey(s *model.Session, i *model.Intent) string {
+	// Context and kind changes remain separate even when descriptions match.
+	payload, _ := json.Marshal(struct {
+		Description, Kind, Origin, TargetRepoID string
+		Explicit                                bool
+		Files, Symbols, Commands                []string
+		Completion                              []model.CriterionGroup
+		Tracker                                 *model.TrackerSubject
+	}{strings.Join(strings.Fields(i.Description), " "), i.Kind, i.Origin, i.TargetRepoID, i.Explicit, i.Files, i.Symbols, i.Commands, i.Completion, i.Tracker})
+	if s.HostID == "" || strings.TrimSpace(i.Description) == "" {
+		return model.ID("unknown-", s.ID, i.ID, string(payload))
+	}
+	return model.ID("unknown-", s.HostID, s.Harness, threadIdentity(s), scope(s), string(payload))
 }

@@ -1,0 +1,118 @@
+{
+  "format": "spuro-sessions",
+  "schema_version": 1,
+  "version": "0.2.0",
+  "host_id": "synthetic-host",
+  "sessions": [
+    {
+      "id": "opencode:synthetic-thread-a",
+      "provider": "normalized-json",
+      "provider_session_id": "synthetic-thread-a",
+      "harness": "opencode",
+      "host_id": "synthetic-host",
+      "working_dir": "/synthetic/repo",
+      "first_observed_at": "2026-01-01T12:00:00Z",
+      "last_observed_at": "2026-01-01T12:00:00Z",
+      "associations": [
+        {
+          "host_id": "synthetic-host",
+          "repo_id": "synthetic-repo",
+          "checkout": "/synthetic/repo",
+          "common_git_dir": "/synthetic/repo/.git",
+          "evidence": [
+            "synthetic association"
+          ]
+        }
+      ],
+      "intents": [
+        {
+          "id": "synthetic-intent-a",
+          "session_id": "opencode:synthetic-thread-a",
+          "description": "Add device table migration and unit tests",
+          "kind": "TODO",
+          "explicit": true,
+          "files": [],
+          "symbols": [],
+          "commands": [],
+          "completion": [],
+          "continues": [],
+          "evidence": [
+            "synthetic pending todo in schema snapshot"
+          ],
+          "confidence": "HIGH"
+        }
+      ]
+    },
+    {
+      "id": "opencode-v2:synthetic-thread-a",
+      "provider": "normalized-json",
+      "provider_session_id": "synthetic-thread-a",
+      "harness": "opencode",
+      "host_id": "synthetic-host",
+      "working_dir": "/synthetic/repo",
+      "first_observed_at": "2026-01-02T12:00:00Z",
+      "last_observed_at": "2026-01-02T12:00:00Z",
+      "associations": [
+        {
+          "host_id": "synthetic-host",
+          "repo_id": "synthetic-repo",
+          "checkout": "/synthetic/repo",
+          "common_git_dir": "/synthetic/repo/.git",
+          "evidence": [
+            "synthetic association"
+          ]
+        }
+      ],
+      "intents": [
+        {
+          "id": "synthetic-intent-a",
+          "session_id": "opencode-v2:synthetic-thread-a",
+          "description": "Add device table migration and unit tests",
+          "kind": "TODO",
+          "explicit": true,
+          "files": [],
+          "symbols": [],
+          "commands": [],
+          "completion": [],
+          "continues": [],
+          "evidence": [
+            "synthetic pending todo in schema snapshot"
+          ],
+          "confidence": "HIGH"
+        }
+      ]
+    }
+  ],
+  "session_assessments": [
+    {
+      "session_id": "opencode:synthetic-thread-a",
+      "summary": "UNKNOWN",
+      "intents": [
+        {
+          "intent_id": "synthetic-intent-a",
+          "state": "UNKNOWN",
+          "confidence": "LOW",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "session_id": "opencode-v2:synthetic-thread-a",
+      "summary": "UNKNOWN",
+      "intents": [
+        {
+          "intent_id": "synthetic-intent-a",
+          "state": "UNKNOWN",
+          "confidence": "LOW",
+          "evidence": []
+        }
+      ]
+    }
+  ],
+  "related_checkouts": [],
+  "related_native_findings": [],
+  "sources": [],
+  "session_findings": [],
+  "evidence": [],
+  "diagnostics": []
+}

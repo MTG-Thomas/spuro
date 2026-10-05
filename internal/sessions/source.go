@@ -209,6 +209,9 @@ func normalizeCoverage(c model.Coverage) model.Coverage {
 	return c
 }
 func validateSession(s model.Session) error {
+	if err := ValidateContext(s.Context); err != nil {
+		return err
+	}
 	if s.StartedAt != nil && s.EndedAt != nil && s.EndedAt.Before(*s.StartedAt) {
 		return fmt.Errorf("session end precedes start")
 	}

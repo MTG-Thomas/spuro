@@ -145,3 +145,47 @@ func BenchmarkUnknownReconciliation(b *testing.B) {
 		}
 	}
 }
+
+func TestDuplicateSchemaSightingIsNotLaterIndependentActivity(t *testing.T) {
+	r := unknownFixture()
+	r.Sessions = r.Sessions[:2]
+	r.Assessments = r.Assessments[:2]
+	later := r.Sessions[0].LastObservedAt.Add(24 * time.Hour)
+	r.Sessions[1].LastObservedAt = &later
+	q := FindUnknowns(context.Background(), &r)
+	if len(q.Groups) != 1 || len(q.Groups[0].Members) != 2 {
+		t.Fatal("duplicate member provenance lost")
+	}
+	if len(q.Groups[0].Suggestions) != 0 || q.Groups[0].Priority == "FOLLOW_UP_CANDIDATE" {
+		t.Fatal("same-group schema observation proposed as later independent activity")
+	}
+}
+
+func TestChangedKindOrContextRetainedAsIdentityCandidates(t *testing.T) {
+	for _, change := range []string{"kind", "context", "files"} {
+		t.Run(change, func(t *testing.T) {
+			r := unknownFixture()
+			r.Sessions = r.Sessions[:2]
+			r.Assessments = r.Assessments[:2]
+			later := r.Sessions[0].LastObservedAt.Add(24 * time.Hour)
+			r.Sessions[1].LastObservedAt = &later
+			switch change {
+			case "kind":
+				r.Sessions[1].Intents[0].Kind = "task_board"
+			case "context":
+				r.Sessions[1].Associations[0].RepoID = "another-repo"
+			case "files":
+				r.Sessions[1].Intents[0].Files = []string{"different.go"}
+			}
+			q := FindUnknowns(context.Background(), &r)
+			if len(q.Groups) != 2 {
+				t.Fatal("different context/kind/payload silently collapsed")
+			}
+			for _, g := range q.Groups {
+				if len(g.Suggestions) != 0 || len(g.IdentityCandidates) != 1 {
+					t.Fatal("identity sighting confused with later independent activity")
+				}
+			}
+		})
+	}
+}

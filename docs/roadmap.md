@@ -22,6 +22,8 @@ and semantic review remain future work.
 
 UNKNOWN reconciliation now has an artifact-only pass. Remaining gaps include
 validated imports of independent audit schemas, live private-corpus acceptance,
-explicit multi-repository intent target binding, richer cached file/blob criteria,
-and reviewed tracker evidence ingestion. Fuzzy suggestions remain inspection
+automatic multi-repository intent target resolution, richer cached file/blob criteria,
+and independent authentication of supplied tracker evidence. Development main accepts
+reviewed, exact offline tracker and bounded-target records with event provenance;
+no live tracker ingestion or arbitrary provider command execution is implemented. Fuzzy suggestions remain inspection
 leads; semantic completion and durable preservation are not inferred.

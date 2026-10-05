@@ -13,6 +13,11 @@ func Merge(existing, incoming model.Session) (model.Session, error) {
 	if existing.ID != incoming.ID || existing.Provider != incoming.Provider || existing.HostID != incoming.HostID || existing.WorkingDir != incoming.WorkingDir {
 		return existing, fmt.Errorf("inconsistent session identity across artifacts")
 	}
+	context, err := mergeContext(existing.Context, incoming.Context)
+	if err != nil {
+		return existing, err
+	}
+	existing.Context = context
 	oldStart := existing.StartedAt
 	if existing.Provider == "deja-vu" && incoming.LastObservedAt != nil && existing.LastObservedAt != nil && incoming.LastObservedAt.Equal(*existing.LastObservedAt) {
 		a, _ := json.Marshal(existing.Intents)

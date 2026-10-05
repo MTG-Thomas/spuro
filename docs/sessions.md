@@ -179,7 +179,8 @@ The same pass is included after a normal `sessions` scan. It produces:
 - **CONCRETE_CANDIDATE**: supplied paths or criteria give an inspection starting point.
 - **BACKGROUND**: insufficient concrete evidence; retained in JSON with gaps.
 
-Exact payload sightings are grouped only within a host-qualified harness/thread.
+Exact payload sightings are grouped only within a host-qualified harness/thread
+and the same contextual scope, kind, origin, target and observable payload.
 All member session/intent references remain. Missing host identity or text-free
 payloads are not merged by an empty description. Distinct threads are never
 merged by fuzzy similarity. At most three fuzzy suggestions per group and twenty
@@ -199,3 +200,65 @@ and original bounded user requests before supplying stronger completion criteria
 reference IDs and non-prose match reasons. It does not remove identifying paths or
 IDs; keep reports private. The private laptop candidate schema has not been
 validated from this host and is not silently inferred by the offline reader.
+
+
+## Offline context evidence (development main)
+
+0.3.0-dev fixes repeated schema sightings suggesting themselves as later activity.
+Different context/kind/payload sightings remain separate. Same-thread exact-description
+references appear in `identity_candidates`, not fuzzy independent-activity suggestions.
+They are reconciliation leads, not proven duplicates; group IDs may change from 0.2.0.
+Genuinely different threads remain eligible for contextual fuzzy suggestions.
+
+Normalized sessions optionally carry `context_evidence` with `schema_version:1`,
+`bounded_requests` and `tracker_witnesses` arrays. Unknown versions are refused.
+These are supplied offline observations, never instructions to execute or fetch.
+The executable does not contact a tracker, provider, or network during reconciliation.
+The additive fields require the development reader; 0.2.0 rejects unfamiliar fields.
+
+Every context record has `id`, qualified `target:{session_id,intent_id}`, and
+`provenance:{provider,artifact,record_id,observed_at,evidence}`. Evidence must be
+nonempty; timestamps are required and observation time cannot precede the event.
+The producer must independently check source records. A provenance label or hash
+establishes internal consistency, not authenticity.
+
+Before any match, the original intent requires:
+
+- `recorded_at` and `source_event.at` identifying the same actual intent event;
+- nonempty original `evidence` and a `source_event` containing `kind`, `at`,
+  `match:"exact_payload"`, `description_sha256` and provenance;
+- SHA-256 of the exact UTF-8 intent description, lowercase hex, matching
+  `description_sha256`. The producer must first match the actual source payload;
+- event kind `todo_write`, `user_message`, `assistant_message`, or `tool_result`.
+  `origin:"task_board"` requires `todo_write`; `origin:"user_request"` requires
+  `user_message`.
+
+A last-assistant timestamp, schema/artifact mtime, or todo-table timestamp borrowed
+from a session tail does not meet this contract. Missing event provenance leaves a
+gap, even when `recorded_at` is populated. Redacted/text-free snapshots cannot
+reestablish a changed or missing description hash binding. Do not rewrite a hash
+merely to fit a redacted description; retain the original private source for review.
+
+A bounded request supplies `actor:"user"`, `at`, `host_id`, `repo_id`, exact
+repository-relative `allowed_paths`, and `other_work_forbidden`. No globs,
+backslashes, absolute paths or parent traversal are accepted. Its event must be
+later than the original intent. The original intent must also supply
+`target_repo_id` and `target_resolution:{host_id,repo_id,method,provenance}`.
+`method` is `explicit_repository` or `verified_user_path`; producer evidence must
+resolve relative language such as “this directory.” Session cwd is never substituted.
+Host and target must match exactly. The resulting bounded-path candidate does not
+resume, cancel, complete or supersede an entire task board, or authorize current work.
+
+A tracker witness supplies `subject:{forge_host,repository,kind,number,action}`,
+`outcome`, `event_at`, `checked_by` and provenance. The original intent supplies the
+same exact `tracker_target` tuple. Only `kind:"pull_request"`, `action:"merge"`,
+`outcome:"merged"` with a later event produces a checked-merge evidence candidate.
+A PR number alone cannot match: another repository's PR42 remains unrelated.
+Closed issues/PRs, branch-protection observations and other intents are untouched.
+Merge evidence is neither deployment proof nor durable-backup proof.
+
+Context evidence only enriches the UNKNOWN inspection queue. It **does not change
+per-intent lifecycle states**, coverage or the derived session summary. Conflicting
+record IDs are rejected during source merge. Existing lifecycle predicates remain
+the authority for their narrow supported conclusions. Synthetic tests are in
+`internal/sessions/context_test.go`; no private corpus is included.

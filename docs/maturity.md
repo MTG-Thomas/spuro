@@ -29,3 +29,14 @@ negative cases, incomplete chronology, text-free output, and a CLI test with no
 Git/provider executable on PATH. The laptop-private candidate corpus was not
 accessible from the implementation host; no claim of validating its 2,165 UNKNOWN
 sightings is made. Existing snapshots can now be reconciled without a new audit.
+
+
+Development 0.3.0-dev incorporates peer-reported Windows offline feedback, using
+fully invented schema-sighting, bounded-request and exact PR-target fixtures.
+The peer reported 2,165 UNKNOWN sightings across five cached reports and 11
+cross-group same-thread description suggestions; these are not 11 self-group
+failures. The implementation host has not independently inspected that corpus.
+The new binary's private Windows acceptance remains pending. Context contracts
+require actual event provenance; producer normalization and source authenticity
+remain external responsibilities. These tests do not establish historic intent
+completion or comprehensive cross-machine coverage.

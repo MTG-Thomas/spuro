@@ -3,6 +3,7 @@ package sessions
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/MTG-Thomas/spuro/internal/model"
 	"io"
 )
 
@@ -12,6 +13,9 @@ func Sanitize(r *Result, noText bool) {
 	if r.UnknownQueue != nil {
 		for n := range r.UnknownQueue.Groups {
 			g := &r.UnknownQueue.Groups[n]
+			for n := range g.Matches {
+				sanitizeProvenance(g.Matches[n].Provenance)
+			}
 			g.Description = Redact(g.Description)
 			if noText {
 				g.Description = ""
@@ -20,8 +24,23 @@ func Sanitize(r *Result, noText bool) {
 	}
 	for si := range r.Sessions {
 		s := &r.Sessions[si]
+		if s.Context != nil {
+			for n := range s.Context.BoundedRequests {
+				sanitizeProvenance(&s.Context.BoundedRequests[n].Provenance)
+			}
+			for n := range s.Context.TrackerWitnesses {
+				sanitizeProvenance(&s.Context.TrackerWitnesses[n].Provenance)
+				s.Context.TrackerWitnesses[n].CheckedBy = Redact(s.Context.TrackerWitnesses[n].CheckedBy)
+			}
+		}
 		for ii := range s.Intents {
 			i := &s.Intents[ii]
+			if i.SourceEvent != nil {
+				sanitizeProvenance(&i.SourceEvent.Provenance)
+			}
+			if i.TargetResolution != nil {
+				sanitizeProvenance(&i.TargetResolution.Provenance)
+			}
 			i.Description = Redact(i.Description)
 			if noText {
 				i.Description = ""
@@ -122,4 +141,12 @@ func Text(w io.Writer, r *Result, includeCompleted bool) error {
 	}
 	_, err := fmt.Fprintln(w, "No provider commands executed. Additional normal-ref copies are not verified backups. No abandonment, authorship, squash, or semantic-completion claim.")
 	return err
+}
+
+func sanitizeProvenance(p *model.ContextProvenance) {
+	if p == nil {
+		return
+	}
+	p.Artifact = Redact(p.Artifact)
+	p.Provider = Redact(p.Provider)
 }

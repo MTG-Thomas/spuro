@@ -60,3 +60,29 @@ func TestOfflineReconcileAmbiguousIdentityRejected(t *testing.T) {
 		t.Fatal("ambiguous session identity accepted")
 	}
 }
+
+func TestOfflineSchemaSightingRegression(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	input := "testdata/schema-sighting.json"
+	before, err := os.ReadFile(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var b bytes.Buffer
+	if err := runSessionReconcile(context.Background(), []string{"--input", input, "--json"}, &b); err != nil {
+		t.Fatal(err)
+	}
+	var result struct {
+		Queue sessions.UnknownQueue `json:"unknown_reconciliation"`
+	}
+	if err := json.Unmarshal(b.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Queue.Groups) != 1 || len(result.Queue.Groups[0].Members) != 2 || len(result.Queue.Groups[0].Suggestions) != 0 || result.Queue.Groups[0].Priority == "FOLLOW_UP_CANDIDATE" {
+		t.Fatal("schema sighting treated as later independent activity")
+	}
+	after, _ := os.ReadFile(input)
+	if !bytes.Equal(before, after) {
+		t.Fatal("input mutated")
+	}
+}

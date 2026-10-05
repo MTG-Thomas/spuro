@@ -87,7 +87,13 @@ type IntentRef struct {
 }
 
 type Intent struct {
-	Continues []IntentRef `json:"continues"`
+	SourceEvent      *IntentEvent      `json:"source_event,omitempty"`
+	TargetResolution *TargetResolution `json:"target_resolution,omitempty"`
+	Origin           string            `json:"origin,omitempty"`
+	RecordedAt       *time.Time        `json:"recorded_at,omitempty"`
+	TargetRepoID     string            `json:"target_repo_id,omitempty"`
+	Tracker          *TrackerSubject   `json:"tracker_target,omitempty"`
+	Continues        []IntentRef       `json:"continues"`
 
 	ID          string           `json:"id"`
 	SessionID   string           `json:"session_id"`
@@ -161,7 +167,8 @@ type IntentDecision struct {
 	Evidence  []string `json:"evidence"`
 }
 type Session struct {
-	FirstObservedAt *time.Time `json:"first_observed_at,omitempty"`
+	Context         *ContextEvidence `json:"context_evidence,omitempty"`
+	FirstObservedAt *time.Time       `json:"first_observed_at,omitempty"`
 
 	LastObservedAt *time.Time `json:"last_observed_at,omitempty"`
 	SourceOrigin   string     `json:"source_origin,omitempty"`
