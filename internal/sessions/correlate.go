@@ -17,8 +17,10 @@ import (
 )
 
 type Result struct {
-	NativeObservation model.Scan       `json:"native_observation"`
-	RelatedCheckouts  []model.Checkout `json:"related_checkouts"`
+	Reconciliation    *Reconciliation          `json:"reconciliation,omitempty"`
+	Timings           map[string]time.Duration `json:"phase_timings_ns"`
+	NativeObservation model.Scan               `json:"native_observation"`
+	RelatedCheckouts  []model.Checkout         `json:"related_checkouts"`
 
 	Format string `json:"format"`
 
@@ -40,10 +42,11 @@ type Result struct {
 type Engine struct {
 	children map[string][]model.Session
 
-	Git    *gitbackend.Runner
-	Native *model.Result
-	HostID string
-	cache  map[string]observation
+	Git      *gitbackend.Runner
+	Native   *model.Result
+	HostID   string
+	Progress func(string)
+	cache    map[string]observation
 }
 type observation struct {
 	known, satisfied, equivalent bool
@@ -371,6 +374,9 @@ func summary(intents []model.IntentAssessment) model.SessionSummary {
 	return model.SessionUnresolved
 }
 func (e *Engine) Correlate(ctx context.Context, ss []model.Session) Result {
+	started := time.Now()
+	associationTime := time.Duration(0)
+	lastProgress := started
 	result := Result{NativeObservation: e.Native.Scan, RelatedCheckouts: []model.Checkout{}, Format: "spuro-sessions", RelatedNativeFindings: []model.Finding{}, SchemaVersion: 1, Version: model.Version, HostID: e.HostID, ObservedAt: time.Now().UTC(), Sessions: ss, Native: e.Native, Sources: []SourceArtifact{}, Assessments: []model.DerivedSessionAssessment{}, Findings: []model.Finding{}, Evidence: []model.Evidence{}, Diagnostics: []model.Diagnostic{}}
 	e.cache = map[string]observation{}
 	e.children = map[string][]model.Session{}
@@ -389,7 +395,13 @@ func (e *Engine) Correlate(ctx context.Context, ss []model.Session) Result {
 			break
 		}
 		s := &result.Sessions[si]
+		associationStart := time.Now()
 		r, c := e.associate(*s)
+		associationTime += time.Since(associationStart)
+		if e.Progress != nil && (si == 0 || time.Since(lastProgress) >= 5*time.Second) {
+			e.Progress(fmt.Sprintf("session correlation: %d/%d sessions", si, len(result.Sessions)))
+			lastProgress = time.Now()
+		}
 		s.Associations = nil
 		if r != nil {
 			key := r.ID + "\x00" + c.Path
@@ -593,5 +605,9 @@ func (e *Engine) Correlate(ctx context.Context, ss []model.Session) Result {
 	}
 
 	sort.Slice(result.Findings, func(i, j int) bool { return result.Findings[i].ID < result.Findings[j].ID })
+	result.Timings = map[string]time.Duration{"association": associationTime, "correlation_total": time.Since(started)}
+	if e.Progress != nil {
+		e.Progress(fmt.Sprintf("session correlation complete: %d sessions; %s total; %s direct association", len(result.Assessments), result.Timings["correlation_total"], associationTime))
+	}
 	return result
 }

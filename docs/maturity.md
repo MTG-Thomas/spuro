@@ -17,3 +17,8 @@ Read [validation](validation.md), [schema](schema-v1.md), and [limits](roadmap.m
 Development main (0.2.0-dev) has unreleased session artifact ingestion and synthetic
 correlation fixtures. No live-session corpus validation or provider refresh was
 performed. See [session usage and coverage limits](sessions.md).
+
+The unreleased reconciliation report has a synthetic 2,000-candidate regression
+fixture: background UNKNOWN records remain in JSON without flooding the default
+shortlist. Session phase timings are instrumented; the reported Windows latency
+has not been independently profiled or reproduced locally.

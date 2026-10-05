@@ -124,3 +124,29 @@ Limits: no comprehensive historic symbol search, squash/semantic completion,
 automatic requirements extraction, live provider discovery, universal parsers,
 session resumption, or durable archive/restore proof. Never use a session summary
 as permission to clean a checkout or shared common Git directory.
+
+## Reconciliation shortlist
+
+The default human report shows at most 20 substantiated review items, prioritizing
+observed dirty state and intent-bound failed commands. UNKNOWN and unsubstantiated
+promise candidates are counted separately; these counts are not forgotten-task
+counts. Completion, supersession, and explicit continuation records are ruled down
+for the shortlist, without treating continuation as completion. Use
+`--include-completed` for the full reconciliation listing, including candidates.
+JSON always retains all raw sessions and per-intent assessments and adds a
+`reconciliation` partition with evidence references and satisfied criteria.
+Partially satisfied criteria are counter-evidence to blanket abandonment claims.
+
+Repository association is contextual: working-directory containment does not prove
+that an intent targets that repository. Structured completion criteria must be
+scoped by their producer; a narrative reference to another repository, a pending
+board entry, or a stale blocker is not automatically a substantiated finding.
+Spuro does not fetch PR/milestone status or infer cancellation from board prose.
+
+`--verbose` reports artifact-read, correlation progress, and serialization phases.
+JSON `phase_timings_ns` contains artifact reading, direct top-level association,
+correlation total (including association and continuation lookup), and report
+preparation durations. Serialization duration is emitted to stderr after writing,
+not embedded retrospectively in its own output. These measurements are not a
+profile of the private Windows corpus; repeated path canonicalization remains an
+unverified performance hypothesis.

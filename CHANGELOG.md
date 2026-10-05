@@ -7,6 +7,16 @@
 - Report derived session summaries with independent coverage/confidence and source provenance.
 - No live provider refresh, transcript archive, semantic completion, or session resumption.
 
+### Session reconciliation on development main
+
+- Bound the default session report to a substantiated review shortlist; retain
+  unverified candidates and ruled-down evidence separately in JSON.
+- Show satisfied observable criteria as counter-evidence to blanket unresolved
+  claims, without changing per-intent lifecycle conclusions.
+- Add session artifact-read, association, correlation, and reporting timings and
+  verbose progress. No provider execution or refresh was introduced.
+
+
 ## 0.1.1
 
 - Correct the project license to AGPL-3.0-only.

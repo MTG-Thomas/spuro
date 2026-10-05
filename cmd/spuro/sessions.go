@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/MTG-Thomas/spuro/internal/analyze"
 	"github.com/MTG-Thomas/spuro/internal/config"
@@ -125,6 +126,10 @@ func runSessions(ctx context.Context, args []string, out, errout io.Writer) erro
 	if err != nil {
 		return err
 	}
+	sourceStarted := time.Now()
+	if verbose {
+		fmt.Fprintln(errout, "session artifact discovery/read started")
+	}
 	format := "normalized"
 	if provider == "deja-vu" {
 		format = "deja-sync"
@@ -185,15 +190,34 @@ func runSessions(ctx context.Context, args []string, out, errout io.Writer) erro
 	if err != nil {
 		return err
 	}
+	sourceElapsed := time.Since(sourceStarted)
+	if verbose {
+		fmt.Fprintf(errout, "session artifact read complete: %d artifacts; %d sessions; %s\n", len(sources), len(ss), sourceElapsed)
+	}
 	engine := sessions.Engine{Git: g, Native: &native, HostID: host}
+	if verbose {
+		engine.Progress = func(message string) { fmt.Fprintln(errout, message) }
+	}
 	result := engine.Correlate(ctx, ss)
 	result.Sources = sources
 	result.Diagnostics = append(result.Diagnostics, diagnostics...)
 	if !includeNative {
 		result.Native = nil
 	}
+	result.Timings["source_read"] = sourceElapsed
+	prepareStarted := time.Now()
 	sessions.Sanitize(&result, noText)
+	result.Timings["report_preparation"] = time.Since(prepareStarted)
 	write := func(w io.Writer) error {
+		started := time.Now()
+		if verbose {
+			fmt.Fprintln(errout, "session report serialization started")
+		}
+		defer func() {
+			if verbose {
+				fmt.Fprintf(errout, "session report serialization finished: %s\n", time.Since(started))
+			}
+		}()
 		if asJSON {
 			return sessions.JSON(w, &result)
 		}

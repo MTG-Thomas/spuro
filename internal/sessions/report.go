@@ -3,7 +3,6 @@ package sessions
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/MTG-Thomas/spuro/internal/model"
 	"io"
 )
 
@@ -61,6 +60,8 @@ func JSON(w io.Writer, r *Result) error {
 	if r.Format == "" {
 		r.Format = "spuro-sessions"
 	}
+	t := Reconcile(r)
+	r.Reconciliation = &t
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	enc.SetEscapeHTML(false)
@@ -73,45 +74,34 @@ func Text(w io.Writer, r *Result, includeCompleted bool) error {
 	for _, src := range r.Sources {
 		fmt.Fprintf(w, "%s source: %q\n  artifact mtime: %s; provider coverage PARTIAL; not refreshed\n", src.Provider, src.Path, src.Modified.Format("2006-01-02T15:04:05Z07:00"))
 	}
-	counts := map[model.Severity]int{}
-	for _, f := range r.Findings {
-		counts[f.Severity]++
+	triage := Reconcile(r)
+	fmt.Fprintf(w, "Substantiated review %d; unverified candidates %d; ruled down %d\n", len(triage.Review), len(triage.Candidates), len(triage.RuledDown))
+	fmt.Fprintln(w, "Candidate counts are not forgotten-task counts. Checkout association supplies context, not proof of the intended repository.")
+	items := triage.Review
+	if includeCompleted {
+		items = append(append(append([]ReconciliationItem{}, items...), triage.Candidates...), triage.RuledDown...)
 	}
-	fmt.Fprintf(w, "PRESERVE FIRST %d; REVIEW %d; INFO %d\n", counts[model.PreserveFirst], counts[model.Review], counts[model.Info])
-	descriptions := map[string]string{}
-	for _, s := range r.Sessions {
-		for _, i := range s.Intents {
-			descriptions[s.ID+"\x00"+i.ID] = i.Description
+	limit := len(items)
+	if !includeCompleted && limit > 20 {
+		limit = 20
+	}
+	for _, item := range items[:limit] {
+		fmt.Fprintf(w, "%s / %s: %s (confidence %s; later coverage %s)\n", item.SessionID, item.IntentID, item.State, item.Confidence, item.Coverage)
+		if item.Description != "" {
+			fmt.Fprintf(w, "  %s\n", item.Description)
+		}
+		for _, reason := range item.Reasons {
+			fmt.Fprintf(w, "  %s\n", reason)
+		}
+		if len(item.SatisfiedCriteria) > 0 {
+			fmt.Fprintf(w, "  Counter-evidence: observed criteria %v\n", item.SatisfiedCriteria)
 		}
 	}
-	for _, a := range r.Assessments {
-		if !includeCompleted {
-			visible := false
-			for _, i := range a.Intents {
-				if i.State != model.IntentCompleted && i.State != model.IntentSuperseded && i.State != model.IntentResumedLater {
-					visible = true
-				}
-			}
-			if !visible {
-				continue
-			}
-		}
-		if a.Summary == model.SessionCompleted && !includeCompleted {
-			continue
-		}
-		fmt.Fprintf(w, "%s: %s\n", a.SessionID, a.Summary)
-		for _, i := range a.Intents {
-			if !includeCompleted && (i.State == model.IntentCompleted || i.State == model.IntentSuperseded || i.State == model.IntentResumedLater) {
-				continue
-			}
-			fmt.Fprintf(w, "  %s: %s (confidence %s; later coverage %s)\n", i.IntentID, i.State, i.Confidence, i.Coverage.SessionHistory.Level)
-			if description := descriptions[a.SessionID+"\x00"+i.IntentID]; description != "" {
-				fmt.Fprintf(w, "    %s\n", description)
-			}
-			for _, reason := range i.Reasons {
-				fmt.Fprintf(w, "    %s\n", reason)
-			}
-		}
+	if limit < len(items) {
+		fmt.Fprintf(w, "%d further substantiated items retained in JSON.\n", len(items)-limit)
+	}
+	if !includeCompleted && len(triage.Candidates) > 0 {
+		fmt.Fprintln(w, "Unverified candidates retained in JSON; use --include-completed for the full reconciliation listing.")
 	}
 	for _, d := range r.Diagnostics {
 		fmt.Fprintf(w, "diagnostic: %s\n", d.Message)
