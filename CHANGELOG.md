@@ -2,6 +2,8 @@
 
 ## 0.2.0
 
+- Fix the timing-emission test to allow valid zero-duration observations on Windows.
+
 - Offline UNKNOWN reconciliation over saved session JSON, with exact sighting groups,
   cached predicate witnesses, qualified links, coverage gaps, and separate fuzzy suggestions.
 

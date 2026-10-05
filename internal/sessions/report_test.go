@@ -101,8 +101,16 @@ func TestSessionCorrelationProgressAndTimings(t *testing.T) {
 	var progress []string
 	e := Engine{Native: &native, HostID: "fixture", Progress: func(s string) { progress = append(progress, s) }}
 	r := e.Correlate(context.Background(), []model.Session{{ID: "unknown", HostID: "foreign", Intents: []model.Intent{{ID: "todo"}}}})
-	if len(progress) < 2 || r.Timings["correlation_total"] <= 0 || r.Timings["association"] <= 0 {
-		t.Fatal("missing session progress/timing")
+	if len(progress) < 2 {
+		t.Fatal("missing session progress")
+	}
+	// A sub-tick operation can legitimately measure zero, especially on Windows.
+	// Presence and nonnegative duration prove emission without depending on speed.
+	for _, phase := range []string{"correlation_total", "association"} {
+		duration, present := r.Timings[phase]
+		if !present || duration < 0 {
+			t.Fatalf("missing or invalid %s timing: %v", phase, duration)
+		}
 	}
 	if r.Assessments[0].Intents[0].State != model.IntentUnknown {
 		t.Fatal("instrumentation changed certainty")
