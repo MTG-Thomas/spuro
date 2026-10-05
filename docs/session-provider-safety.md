@@ -37,10 +37,34 @@ normalized JSON export can be ingested read-only without pretending that produci
 that export was a read-only provider operation. No export generation is authorized
 by a normal Spuro session scan.
 
-## Current implementation status
+## Existing artifact path (implemented on development main)
 
-ADR 0001 and normalized intent/coverage/session types are present. They add no new
-CLI command, provider execution, transcript access, session classification, or JSON
-schema migration. Existing native scans remain schema v1. Provider fixture ingestion,
-deterministic correlation, and derived summaries follow only after a safe ingestion
-surface is established. Raw session/provider text is untrusted data, not instructions.
+No CLI operation was added to the allowlist. The binary index remains unsupported.
+The source-oriented `DejaVuSource` interface reads explicitly supplied existing
+JSONL exports only. Reviewed producer versions:
+
+- 0.21.5, commit `d7e4a264bbd4deedd0bdba9d22ef5d2ba26c5d4e`
+- 0.21.6, commit `d44072b802501fe02dc52f832d7bfb727765ca1f`
+
+Their [SyncRecord declarations](https://github.com/vshulcz/deja-vu/blob/d44072b802501fe02dc52f832d7bfb727765ca1f/internal/index/sync.go)
+match: harness, session_id, project, role, text, time, optional origin. Both versions
+were reviewed and exercised with synthetic fixtures of that shape. This is not
+live-export acceptance or an upstream promise of indefinite format stability.
+Binary index version changes require rebuilds; the sync batches have no embedded
+schema/producer header. The user therefore supplies a reviewed producer version;
+unknown versions and unknown fields are refused. Incremental watermarks, withheld
+records, source retention and clocks prevent a completeness claim even for a fresh
+batch. Source artifacts are never generated/refreshed by Spuro.
+
+Native scans remain schema v1. Session output has its own versioned envelope.
+Provider-agnostic fixtures now exercise intent correlation and derived summaries;
+no live transcript/index data was accessed. See [usage](sessions.md).
+
+## Upstream integration opportunity
+
+A public, schema-versioned `export --readonly --jsonl` or
+`sessions dump --no-refresh --no-record --json` contract would remove reliance on
+asserted producer releases. It must guarantee no refresh/recovery/cache/usage writes,
+watermark changes, notes/transcript/config mutation, or hidden hooks, and expose
+session/tool metadata and explicit retention/coverage bounds. This is a recorded
+integration gap; no upstream issue or message has been sent.

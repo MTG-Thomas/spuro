@@ -124,6 +124,15 @@ The scanner disables optional Git locks, fsmonitor, untracked-cache updates,
 automatic maintenance, external diff/textconv and lazy fetching. Git subprocesses
 use argv arrays, bounded output, timeouts and isolated process groups.
 
+## Session archaeology (unreleased)
+
+Development main supports reading existing normalized session artifacts and reviewed
+existing deja-vu sync JSONL batches. It correlates concrete intents with native Git,
+dirty state and explicit later-session links, without executing provider commands.
+Coverage and confidence remain separate; a failed session with partial later
+coverage is unresolved, not declared abandoned. See [session usage and limits](docs/sessions.md).
+Published 0.1.1 binaries do not include this feature; build from main to try it.
+
 ## Supplemental analyzers
 
 Build adapters alongside the scanner and place them on PATH:

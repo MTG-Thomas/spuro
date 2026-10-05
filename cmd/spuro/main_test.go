@@ -42,3 +42,34 @@ func TestFlagsAfterRootAndOutputSafety(t *testing.T) {
 		t.Fatal("CLI allowed output inside source")
 	}
 }
+
+func TestSessionCLIUnavailableAndArtifactOutputSafety(t *testing.T) {
+	root := t.TempDir()
+	artifact := filepath.Join(t.TempDir(), "session-fixture.json")
+	data := []byte(`{"schema_version":1,"sessions":[]}`)
+	if err := os.WriteFile(artifact, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := run(context.Background(), []string{"sessions", root, "--json"}, &out, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(out.Bytes(), []byte("provider skipped")) {
+		t.Fatal("missing provider diagnostic")
+	}
+	for _, output := range []string{artifact, filepath.Join(root, "report.json")} {
+		if err := run(context.Background(), []string{"sessions", root, "--source", artifact, "--output", output}, &bytes.Buffer{}, &bytes.Buffer{}); err == nil {
+			t.Fatal("unsafe output accepted")
+		}
+	}
+	link := filepath.Join(filepath.Dir(artifact), "alias.json")
+	if err := os.Symlink(artifact, link); err == nil {
+		if err := run(context.Background(), []string{"sessions", root, "--source", artifact, "--output", link}, &bytes.Buffer{}, &bytes.Buffer{}); err == nil {
+			t.Fatal("source symlink overwritten")
+		}
+	}
+	got, _ := os.ReadFile(artifact)
+	if !bytes.Equal(data, got) {
+		t.Fatal("artifact mutated")
+	}
+}

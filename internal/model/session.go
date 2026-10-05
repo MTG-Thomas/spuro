@@ -63,6 +63,8 @@ const (
 // Any/All relationships are explicit groups so one file change cannot silently
 // satisfy several independent requirements.
 type CompletionCriterion struct {
+	Literal string `json:"literal,omitempty"`
+
 	ID                   string   `json:"id"`
 	Kind                 string   `json:"kind"`
 	Description          string   `json:"description"`
@@ -79,7 +81,14 @@ type CriterionGroup struct {
 	Criteria []CompletionCriterion `json:"criteria"`
 }
 
+type IntentRef struct {
+	SessionID string `json:"session_id"`
+	IntentID  string `json:"intent_id"`
+}
+
 type Intent struct {
+	Continues []IntentRef `json:"continues"`
+
 	ID          string           `json:"id"`
 	SessionID   string           `json:"session_id"`
 	Description string           `json:"description"`
@@ -116,6 +125,10 @@ type SessionAssociation struct {
 }
 
 type SessionCommand struct {
+	IntentRefs []IntentRef `json:"intent_refs"`
+
+	IntentIDs []string `json:"intent_ids"`
+
 	ID          string     `json:"id"`
 	Command     string     `json:"command,omitempty"`
 	WorkingDir  string     `json:"working_dir"`
@@ -126,7 +139,36 @@ type SessionCommand struct {
 	Evidence    []string   `json:"evidence"`
 }
 
+type SessionSource struct {
+	SHA256 string `json:"sha256"`
+
+	Provider        string     `json:"provider"`
+	FormatVersion   string     `json:"format_version"`
+	ProducerVersion string     `json:"producer_version,omitempty"`
+	Path            string     `json:"path"`
+	Type            string     `json:"type"`
+	Modified        time.Time  `json:"modified"`
+	MayBeStale      bool       `json:"may_be_stale"`
+	Earliest        *time.Time `json:"earliest,omitempty"`
+	Latest          *time.Time `json:"latest,omitempty"`
+	RetentionGaps   []string   `json:"retention_gaps"`
+}
+type IntentDecision struct {
+	SessionID string   `json:"session_id"`
+	IntentID  string   `json:"intent_id"`
+	Actor     string   `json:"actor"`
+	Decision  string   `json:"decision"`
+	Evidence  []string `json:"evidence"`
+}
 type Session struct {
+	FirstObservedAt *time.Time `json:"first_observed_at,omitempty"`
+
+	LastObservedAt *time.Time `json:"last_observed_at,omitempty"`
+	SourceOrigin   string     `json:"source_origin,omitempty"`
+
+	Sources   []SessionSource  `json:"sources"`
+	Decisions []IntentDecision `json:"decisions"`
+
 	ID                string               `json:"id"`
 	Provider          string               `json:"provider"`
 	ProviderSessionID string               `json:"provider_session_id"`

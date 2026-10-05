@@ -13,3 +13,7 @@ Platform build support does not prove exhaustive real-estate validation everywhe
 
 Native Git remains authoritative. Unknown coverage and plugin failures are reported.
 Read [validation](validation.md), [schema](schema-v1.md), and [limits](roadmap.md).
+
+Development main (0.2.0-dev) has unreleased session artifact ingestion and synthetic
+correlation fixtures. No live-session corpus validation or provider refresh was
+performed. See [session usage and coverage limits](sessions.md).

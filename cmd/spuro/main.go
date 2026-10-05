@@ -26,8 +26,11 @@ func main() {
 }
 func run(ctx context.Context, args []string, out, errout io.Writer) error {
 	if len(args) == 0 || args[0] == "--help" || args[0] == "-h" {
-		_, e := fmt.Fprintln(out, "Usage: spuro scan <root...> [--json] [--output PATH] [--plugin NAME] [--no-plugins] [--max-workers N] [--verbose] [--config PATH]\n       spuro version\n       spuro plugins [--json] [--config PATH]\nSpuro is read-only. Reports must be saved outside source roots and repositories.")
+		_, e := fmt.Fprintln(out, "Usage: spuro scan <root...> [--json] [--output PATH] [--plugin NAME] [--no-plugins] [--max-workers N] [--verbose] [--config PATH]\n       spuro sessions [root...] --source FILE [--json]\n       spuro version\n       spuro plugins [--json] [--config PATH]\nSpuro is read-only. Reports must be saved outside source roots and repositories.")
 		return e
+	}
+	if args[0] == "sessions" {
+		return runSessions(ctx, args[1:], out, errout)
 	}
 	if args[0] == "version" {
 		if len(args) != 1 {
