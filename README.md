@@ -11,7 +11,8 @@ It recursively audits source roots for uncommitted changes, detached checkouts,
 unpushed branches, reflog-only history, dropped stashes and unreachable commits.
 Native Git supplies the facts; exact reachability, tree equality and stable patch
 IDs help separate unique work from rebased, cherry-picked or duplicated history.
-Spuro MVP 0.1.1 is a preservation-risk scanner. It performs no cleanup or rescue operations.
+Spuro 0.2.0 is a read-only preservation-risk scanner with optional session
+archaeology. It performs no cleanup, rescue, or agent-resumption operations.
 
 ## Install
 
@@ -124,14 +125,35 @@ The scanner disables optional Git locks, fsmonitor, untracked-cache updates,
 automatic maintenance, external diff/textconv and lazy fetching. Git subprocesses
 use argv arrays, bounded output, timeouts and isolated process groups.
 
-## Session archaeology (unreleased)
+## Session archaeology
 
-Development main supports reading existing normalized session artifacts and reviewed
-existing deja-vu sync JSONL batches. It correlates concrete intents with native Git,
-dirty state and explicit later-session links, without executing provider commands.
-Coverage and confidence remain separate; a failed session with partial later
-coverage is unresolved, not declared abandoned. See [session usage and limits](docs/sessions.md).
-Published 0.1.1 binaries do not include this feature; build from main to try it.
+Spuro reads existing normalized session artifacts or reviewed deja-vu sync JSONL
+batches, then correlates **each concrete intent** with native Git, dirty state,
+recorded commands and explicit later-session links. It never executes deja-vu,
+refreshes an index, creates an export, or uploads transcripts. Provider freshness
+and later-history gaps remain explicit; unresolved does not mean abandoned.
+
+```sh
+spuro sessions ~/src --source /private/audit/normalized-sessions.json \
+  --json --output /private/audit/sessions.json --verbose
+
+# Reconcile the saved snapshot without repeating the estate audit.
+spuro sessions reconcile --input /private/audit/sessions.json
+spuro sessions reconcile --input /private/audit/sessions.json \
+  --json --no-transcript-text --output /private/audit/reconciliation.json
+```
+
+Offline reconciliation groups exact sightings within host-qualified threads,
+finds cached witnesses and qualified links, and ranks separate fuzzy suggestions.
+The shortlist exposes scope, chronology, criteria and coverage gaps; it never
+promotes UNKNOWN to completed or abandoned. JSON retains every candidate.
+Private audit CSV/custom JSON schemas are not automatically inferred.
+
+Session reports contain paths and identifying metadata even with
+`--no-transcript-text`; keep them private. Session coverage is fixture-tested;
+the laptop-private candidate corpus has not been validated by the implementation
+host. See [session usage and limits](docs/sessions.md) and
+[provider safety](docs/session-provider-safety.md).
 
 ## Supplemental analyzers
 

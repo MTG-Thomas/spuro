@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (0.2.0-dev)
+## 0.2.0
 
 - Offline UNKNOWN reconciliation over saved session JSON, with exact sighting groups,
   cached predicate witnesses, qualified links, coverage gaps, and separate fuzzy suggestions.
@@ -10,7 +10,7 @@
 - Report derived session summaries with independent coverage/confidence and source provenance.
 - No live provider refresh, transcript archive, semantic completion, or session resumption.
 
-### Session reconciliation on development main
+### Session reconciliation
 
 - Bound the default session report to a substantiated review shortlist; retain
   unverified candidates and ruled-down evidence separately in JSON.

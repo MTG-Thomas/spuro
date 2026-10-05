@@ -1,8 +1,8 @@
-# Session archaeology (unreleased on main)
+# Session archaeology
 
-Spuro 0.2.0-dev adds source-oriented ingestion and conservative per-intent
-correlation. Build from main with `make build`; the published 0.1.1 binary does
-not include these commands. Normal repository scans remain schema v1.
+Spuro 0.2.0 adds source-oriented ingestion and conservative per-intent
+correlation. Install the 0.2.0 release or build with `make build`. Earlier 0.1.x
+binaries do not include these commands. Normal repository scans remain schema v1.
 
 ## Existing artifacts only
 
