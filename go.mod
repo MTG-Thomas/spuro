@@ -1,5 +1,5 @@
 module github.com/MTG-Thomas/spuro
 
-go 1.24
+go 1.26.8
 
 require github.com/pelletier/go-toml/v2 v2.4.3

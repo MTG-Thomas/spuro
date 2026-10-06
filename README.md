@@ -29,7 +29,7 @@ See [maturity](docs/maturity.md), [contributing](CONTRIBUTING.md), and the [AGPL
 
 ## Build and scan
 
-Requires Go 1.24+ and a native Git executable supporting porcelain v2 and
+Requires Go 1.26.8+ and a native Git executable supporting porcelain v2 and
 `git worktree list --porcelain -z` (tested with Git 2.47.3 on Linux).
 
 ```sh

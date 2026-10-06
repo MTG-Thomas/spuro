@@ -2,6 +2,8 @@
 
 ## 0.3.0-dev (unreleased)
 
+- Raise the minimum Go version to 1.26.8 to match the supported CI toolchain.
+
 - Accept bounded offline fork/event/fragment evidence to identify inherited source
   copies without treating rewritten wrapper times as independent later activity.
   Preserve group/member IDs, lifecycle and native state.
