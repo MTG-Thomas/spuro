@@ -11,11 +11,12 @@ It recursively audits source roots for uncommitted changes, detached checkouts,
 unpushed branches, reflog-only history, dropped stashes and unreachable commits.
 Native Git supplies the facts; exact reachability, tree equality and stable patch
 IDs help separate unique work from rebased, cherry-picked or duplicated history.
-Spuro 0.2.0 is a read-only preservation-risk scanner with optional session
+Spuro is a read-only preservation-risk scanner with optional session
 archaeology. It performs no cleanup, rescue, or agent-resumption operations.
 
-Development main is **0.3.0-dev**. It tightens offline UNKNOWN identity grouping
-and adds provenance-bound context, scoped-request and stash-source evidence; the latest release remains 0.2.0.
+[Spuro 0.3.0](https://github.com/MTG-Thomas/spuro/releases/tag/v0.3.0) tightens offline
+UNKNOWN identity grouping and adds provenance-bound context, scoped-request and
+stash-source evidence.
 See the [session contract](docs/sessions.md#offline-context-evidence-development-main).
 
 ## Install
