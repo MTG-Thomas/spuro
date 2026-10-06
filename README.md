@@ -25,6 +25,9 @@ verify SHA256SUMS, and place the executable on PATH. Native Git is required sepa
 Or install with Go: `go install github.com/MTG-Thomas/spuro/cmd/spuro@latest`.
 Adapters are optional; `make build` builds all three executables.
 
+Releases use signed tags, CI-built native archives, checksums, build receipts and a
+CycloneDX SBOM. See the [release process](docs/releasing.md).
+
 See [maturity](docs/maturity.md), [contributing](CONTRIBUTING.md), and the [AGPL-3.0 license](LICENSE).
 
 ## Build and scan

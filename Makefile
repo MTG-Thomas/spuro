@@ -1,4 +1,4 @@
-.PHONY: build test vet fmt fmt-check check
+.PHONY: build test vet fmt fmt-check release-test check
 build:
 	mkdir -p bin
 	go build -trimpath -o bin/spuro ./cmd/spuro
@@ -13,5 +13,8 @@ fmt:
 	go fmt ./...
 fmt-check:
 	test -z "$$(gofmt -l .)"
-check: fmt-check vet test
+release-test:
+	python3 -m unittest discover -s scripts -p 'test_release.py' -v
+
+check: fmt-check vet test release-test
 	go test -race ./...

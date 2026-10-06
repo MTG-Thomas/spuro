@@ -6,7 +6,8 @@ Run `make check build` before publishing. Tests construct disposable repositorie
 never run mutation fixtures against a developer source estate. Keep raw estate
 reports, private paths, commit subjects, and file contents outside this repository.
 
-Use signed commits. New preservation claims need fixture tests, explicit evidence,
+Use signed branches and ready-for-review PRs; merge only after checks and review
+permit it. Do not push ordinary changes directly to main. Use signed commits. New preservation claims need fixture tests, explicit evidence,
 and documented limits. Prefer the standard library; justify new dependencies.
 Cross-platform behavior is tested on Linux, macOS, and Windows. POSIX-only plugin
 fixture tests are skipped on Windows; do not interpret that as full plugin coverage.
