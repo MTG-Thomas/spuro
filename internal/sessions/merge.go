@@ -17,6 +17,11 @@ func Merge(existing, incoming model.Session) (model.Session, error) {
 	if err != nil {
 		return existing, err
 	}
+	inheritance, err := mergeInheritance(existing.Inheritance, incoming.Inheritance)
+	if err != nil {
+		return existing, err
+	}
+	existing.Inheritance = inheritance
 	existing.Context = context
 	oldStart := existing.StartedAt
 	if existing.Provider == "deja-vu" && incoming.LastObservedAt != nil && existing.LastObservedAt != nil && incoming.LastObservedAt.Equal(*existing.LastObservedAt) {

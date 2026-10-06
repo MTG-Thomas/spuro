@@ -362,3 +362,58 @@ matches; no broad history search or external call is added.
 
 Fixtures: `internal/sessions/batch02_test.go`. Provider normalization is separate
 from advisory finder correlation; private Windows acceptance is pending.
+
+
+### Batch04: supplied inherited-origin evidence
+
+Optional session `inheritance_evidence` has `schema_version:1`, `forks`, `events`,
+`occurrences`, and `fragments`. This is an offline producer contract, not a provider
+parser. Every record has a unique `id`, `artifact_sha256` (full lowercase SHA256 of
+the checked source artifact), and the existing `provenance` fields. Provenance must
+identify an actual source record and retain independently checked evidence. Spuro
+validates internal consistency; it cannot authenticate supplied hashes or receipts.
+
+All identity fields use explicit canonical host/harness/provider/thread identities,
+with schema versions retained separately by the producer. No aliases are inferred.
+
+| Array | Additional fields |
+| --- | --- |
+| `forks` | `host_id`, `harness`, `provider`, `thread_id` (child), `parent_thread_id` |
+| `events` | same identity fields for original parent; `turn_id`, `kind:"task_complete"`, `payload_sha256`, `payload_bytes` |
+| `occurrences` | same identity fields for observed thread; `event_id`, `turn_id`, `kind:"task_complete"`, `payload_sha256`, `payload_bytes`, explicit `inherited` boolean |
+| `fragments` | `target:{session_id,intent_id}`, `occurrence_id`, `match:"exact_fragment"`, `fragment_sha256`, `byte_start`, `byte_end`, `utf8_boundaries_verified:true` |
+
+The parent event must be present in the input and its canonical thread represented
+by a session. Each fork edge must come from checked session metadata. An inherited
+occurrence must point to that event, match its turn/kind/full-payload hash/byte length,
+and have complete, acyclic same-host/harness/provider ancestry to its original
+thread. All traversed threads must be represented; ambiguous parents and cycles
+fail closed. Original occurrences use `inherited:false` and must belong to the
+original event's thread. A new child request cannot borrow a parent's event.
+Wrapper timestamps remain observation metadata and do not establish new activity.
+
+Fragment binding is independent of whole-event binding. The producer must verify
+that the candidate's exact UTF8 bytes are an exact source match at the supplied
+zero-based half-open UTF8 byte span, with code-point-aligned endpoints. The producer
+must explicitly assert `utf8_boundaries_verified:true` after checking the actual
+source bytes; character counts are not byte counts. Spuro checks the exact description hash, byte
+length, and bounds within the full payload. Without full source bytes it cannot
+independently inspect the substring or prove endpoint alignment; the checked extraction remains supplied
+provenance. Do not label a paragraph as whole-event `exact_payload`. Missing/redacted
+candidate descriptions cannot establish the fragment binding. Multiple incompatible
+origins for a candidate are ambiguous and do not suppress activity suggestions.
+
+Only two candidates with the same checked original event and exact fragment
+hash/span are excluded from fuzzy independent-activity suggestions. They remain
+separate groups with unchanged IDs/members and gain
+`identity_candidates.kind:same_inherited_source_fragment`. Evidence applies to that
+event/fragment pair, never the whole fork/thread. Different source turns, changed
+payloads, different fragments, newly issued child requests, missing parent records,
+cycles, ancestry gaps and identity mismatches stay unsuppressed/unknown. Missing
+or conflicting evidence produces gaps. No lifecycle, coverage, checkout or native
+preservation state is changed. No Git/provider command or transcript parsing is
+added. Unknown contract versions and conflicting record IDs are rejected.
+
+Synthetic fixtures: `internal/sessions/inheritance_test.go`. Private Windows batch04
+acceptance remains pending. This contract is deliberately limited to checked
+`task_complete` occurrences; other event kinds need a separately reviewed extension.

@@ -27,6 +27,20 @@ func Sanitize(r *Result, noText bool) {
 	}
 	for si := range r.Sessions {
 		s := &r.Sessions[si]
+		if s.Inheritance != nil {
+			for n := range s.Inheritance.Forks {
+				sanitizeProvenance(&s.Inheritance.Forks[n].Provenance)
+			}
+			for n := range s.Inheritance.Events {
+				sanitizeProvenance(&s.Inheritance.Events[n].Provenance)
+			}
+			for n := range s.Inheritance.Occurrences {
+				sanitizeProvenance(&s.Inheritance.Occurrences[n].Provenance)
+			}
+			for n := range s.Inheritance.Fragments {
+				sanitizeProvenance(&s.Inheritance.Fragments[n].Provenance)
+			}
+		}
 		if s.Context != nil {
 			for n := range s.Context.ScopedReverts {
 				w := &s.Context.ScopedReverts[n]

@@ -135,6 +135,7 @@ func FindUnknowns(ctx context.Context, r *Result) UnknownQueue {
 	}
 	groups := map[string]int{}
 	contexts := indexContext(r.Sessions)
+	origins := indexOrigins(r.Sessions)
 	linked := map[string][]*model.Session{}
 	for n := range r.Sessions {
 		later := &r.Sessions[n]
@@ -190,6 +191,9 @@ func FindUnknowns(ctx context.Context, r *Result) UnknownQueue {
 				g.ObservationKind = "harness_control_event"
 			}
 			g.Gaps = append(g.Gaps, "control-only event is not an independent human request or later activity; prior substantive work remains unresolved")
+		}
+		if gap := origins.gaps[s.ID+"\x00"+i.ID]; gap != "" {
+			g.Gaps = append(g.Gaps, gap)
 		}
 		lower := strings.ToLower(i.Description)
 		for _, marker := range []string{"optional", "if needed", "maybe", "consider", "task board"} {
@@ -306,6 +310,13 @@ func FindUnknowns(ctx context.Context, r *Result) UnknownQueue {
 		sort.Ints(indexes)
 		for _, n := range indexes {
 			other := records[n]
+			if other.session.ID == s.ID || unknownGroupKey(other.session, other.intent) == key {
+				continue
+			}
+			if same, evidence := origins.same(rec, other); same {
+				g.IdentityCandidates = append(g.IdentityCandidates, IntentMatch{Kind: "same_inherited_source_fragment", SessionID: other.session.ID, IntentID: other.intent.ID, Reason: "supplied parent event, checked fork ancestry and exact fragment identify inherited source; wrapper time is not independent activity", Evidence: evidence})
+				continue
+			}
 			t := timestamp(other.session)
 			if observationOnly(i) || observationOnly(other.intent) || other.session.ID == s.ID || unknownGroupKey(other.session, other.intent) == key || descriptionIdentity(other.session, other.intent) == descriptionIdentity(s, i) || t == nil || !t.After(*timestamp(s)) || !overlap(words, tokens(other.intent.Description)) {
 				continue

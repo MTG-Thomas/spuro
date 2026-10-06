@@ -53,3 +53,10 @@ Batch02 development fixtures cover exact control boilerplate versus real request
 scoped revert chronology/negation/identity, residual observation provenance, and
 per-artifact stash third-parent/source-version boundaries. Private Windows batch02
 acceptance remains pending; supplied source authenticity is not established here.
+
+
+The Windows peer reported batch02 acceptance for `a9218f3` (32 independent fixtures)
+and batch03 acceptance for `55e1f87` (38 independent fixtures), verified exact build
+hashes/signatures and green exact-head CI. Batch04 adds synthetic inherited-origin
+fixtures with missing/contradictory provenance negatives; private acceptance remains
+pending. Full-event and fragment extraction authenticity remains producer-supplied.

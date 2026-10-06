@@ -178,6 +178,7 @@ func runSessions(ctx context.Context, args []string, out, errout io.Writer) erro
 							ss[index].Commands = nil
 							ss[index].Decisions = nil
 							ss[index].Context = nil
+							ss[index].Inheritance = nil
 						} else {
 							ss[index] = merged
 						}

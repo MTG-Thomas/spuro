@@ -209,6 +209,9 @@ func normalizeCoverage(c model.Coverage) model.Coverage {
 	return c
 }
 func validateSession(s model.Session) error {
+	if err := ValidateInheritance(s.Inheritance); err != nil {
+		return err
+	}
 	if err := ValidateContext(s.Context); err != nil {
 		return err
 	}

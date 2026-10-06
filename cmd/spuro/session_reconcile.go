@@ -102,6 +102,9 @@ func runSessionReconcile(ctx context.Context, args []string, out io.Writer) erro
 	seenSessions := map[string]bool{}
 	intents := map[string]bool{}
 	for _, session := range snapshot.Sessions {
+		if err := sessions.ValidateInheritance(session.Inheritance); err != nil {
+			return err
+		}
 		if err := sessions.ValidateContext(session.Context); err != nil {
 			return err
 		}

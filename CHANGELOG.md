@@ -2,6 +2,10 @@
 
 ## 0.3.0-dev (unreleased)
 
+- Accept bounded offline fork/event/fragment evidence to identify inherited source
+  copies without treating rewritten wrapper times as independent later activity.
+  Preserve group/member IDs, lifecycle and native state.
+
 - Recognize the second exact interrupted-turn control payload ending in
   “verify current state before retrying,” without broadening tag matching.
 

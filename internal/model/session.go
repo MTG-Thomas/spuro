@@ -168,8 +168,9 @@ type IntentDecision struct {
 	Evidence  []string `json:"evidence"`
 }
 type Session struct {
-	Context         *ContextEvidence `json:"context_evidence,omitempty"`
-	FirstObservedAt *time.Time       `json:"first_observed_at,omitempty"`
+	Inheritance     *InheritanceEvidence `json:"inheritance_evidence,omitempty"`
+	Context         *ContextEvidence     `json:"context_evidence,omitempty"`
+	FirstObservedAt *time.Time           `json:"first_observed_at,omitempty"`
 
 	LastObservedAt *time.Time `json:"last_observed_at,omitempty"`
 	SourceOrigin   string     `json:"source_origin,omitempty"`
