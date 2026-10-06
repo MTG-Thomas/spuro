@@ -276,8 +276,10 @@ in `internal/sessions/unknown.go` is retained as
 `observation_kind:control_boilerplate_candidate`. Stronger producer typing requires
 `origin:harness_control` and a `source_event` with `kind:harness_control`,
 `match:exact_payload`, exact description hash and valid event provenance; this
-becomes `observation_kind:harness_control_event`. This recognizes only that exact
-payload after outer whitespace trim. Questions about the tag, quoted examples
+becomes `observation_kind:harness_control_event`. This recognizes only the two exact
+allowlisted payloads after outer whitespace trim: the period-ending version and
+the semicolon-ending version “partially executed; verify current state before
+retrying.” Other variants remain unsupported. Questions about the tag, quoted examples
 inside a real request, and control markers followed by substantive user text remain
 eligible for normal inspection. Neither form cancels an interrupted real request.
 The original producer emitting control boilerplate as human intent is a producer

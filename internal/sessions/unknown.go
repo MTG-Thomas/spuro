@@ -511,7 +511,16 @@ func unknownGroupKey(s *model.Session, i *model.Intent) string {
 
 const abortedControl = "<turn_aborted>\nThe user interrupted the previous turn on purpose. Any running unified exec processes may still be running in the background. If any tools/commands were aborted, they may have partially executed.\n</turn_aborted>"
 
-func controlOnly(i *model.Intent) bool { return strings.TrimSpace(i.Description) == abortedControl }
+const abortedRetryControl = "<turn_aborted>\nThe user interrupted the previous turn on purpose. Any running unified exec processes may still be running in the background. If any tools/commands were aborted, they may have partially executed; verify current state before retrying.\n</turn_aborted>"
+
+func controlOnly(i *model.Intent) bool {
+	switch strings.TrimSpace(i.Description) {
+	case abortedControl, abortedRetryControl:
+		return true
+	default:
+		return false
+	}
+}
 func typedControl(i *model.Intent) bool {
 	return controlOnly(i) && i.Origin == "harness_control" && i.SourceEvent != nil && exactEvent(*i.SourceEvent, i.Description, "harness_control")
 }

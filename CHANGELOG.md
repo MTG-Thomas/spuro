@@ -2,6 +2,9 @@
 
 ## 0.3.0-dev (unreleased)
 
+- Recognize the second exact interrupted-turn control payload ending in
+  “verify current state before retrying,” without broadening tag matching.
+
 - Retain exact control boilerplate and payload-bound residual disavows as observations,
   without suggesting independent activity or discarding interrupted/dirty work.
 - Accept narrow offline thread-scoped user revert instructions and exact stash
