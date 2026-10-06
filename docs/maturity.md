@@ -31,7 +31,7 @@ accessible from the implementation host; no claim of validating its 2,165 UNKNOW
 sightings is made. Existing snapshots can now be reconciled without a new audit.
 
 
-Development 0.3.0-dev incorporates peer-reported Windows offline feedback, using
+Version 0.3.0 incorporates peer-reported Windows offline feedback, using
 fully invented schema-sighting, bounded-request and exact PR-target fixtures.
 The peer reported 2,165 UNKNOWN sightings across five cached reports and 11
 cross-group same-thread description suggestions; these are not 11 self-group
@@ -64,6 +64,6 @@ pending. Full-event and fragment extraction authenticity remains producer-suppli
 The release workflow now has a non-publishing six-target packaging rehearsal,
 source and compiled-binary vulnerability gates, module/stdlib CycloneDX inventory,
 embedded build receipts, and downloaded-asset verification. Published v0.2.0
-assets are unchanged; the new asset contract begins with the next signed-tag
-release. Cross-compiled targets are explicitly marked when not runtime-smoked.
+assets are unchanged; the new asset contract begins with v0.3.0. Cross-compiled
+targets are explicitly marked when not runtime-smoked.
 See [release operations](releasing.md) for the guarantees and boundaries.
