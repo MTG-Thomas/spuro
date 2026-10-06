@@ -15,7 +15,7 @@ Spuro 0.2.0 is a read-only preservation-risk scanner with optional session
 archaeology. It performs no cleanup, rescue, or agent-resumption operations.
 
 Development main is **0.3.0-dev**. It tightens offline UNKNOWN identity grouping
-and adds provenance-bound context evidence; the latest release remains 0.2.0.
+and adds provenance-bound context, scoped-request and stash-source evidence; the latest release remains 0.2.0.
 See the [session contract](docs/sessions.md#offline-context-evidence-development-main).
 
 ## Install

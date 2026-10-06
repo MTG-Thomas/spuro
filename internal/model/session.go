@@ -87,13 +87,14 @@ type IntentRef struct {
 }
 
 type Intent struct {
-	SourceEvent      *IntentEvent      `json:"source_event,omitempty"`
-	TargetResolution *TargetResolution `json:"target_resolution,omitempty"`
-	Origin           string            `json:"origin,omitempty"`
-	RecordedAt       *time.Time        `json:"recorded_at,omitempty"`
-	TargetRepoID     string            `json:"target_repo_id,omitempty"`
-	Tracker          *TrackerSubject   `json:"tracker_target,omitempty"`
-	Continues        []IntentRef       `json:"continues"`
+	Artifacts        []RequestedArtifact `json:"requested_artifacts,omitempty"`
+	SourceEvent      *IntentEvent        `json:"source_event,omitempty"`
+	TargetResolution *TargetResolution   `json:"target_resolution,omitempty"`
+	Origin           string              `json:"origin,omitempty"`
+	RecordedAt       *time.Time          `json:"recorded_at,omitempty"`
+	TargetRepoID     string              `json:"target_repo_id,omitempty"`
+	Tracker          *TrackerSubject     `json:"tracker_target,omitempty"`
+	Continues        []IntentRef         `json:"continues"`
 
 	ID          string           `json:"id"`
 	SessionID   string           `json:"session_id"`

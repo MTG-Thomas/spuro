@@ -40,3 +40,16 @@ The new binary's private Windows acceptance remains pending. Context contracts
 require actual event provenance; producer normalization and source authenticity
 remain external responsibilities. These tests do not establish historic intent
 completion or comprehensive cross-machine coverage.
+
+
+The Windows peer subsequently reported batch01 validation complete for `dc9e377`:
+verified binary/signature, 12 independent synthetic regressions and successful
+Linux/macOS/Windows CI. With explicitly corrected producer harness identity, all
+2,165 sightings remained in 1,876 groups; no same-thread exact-description activity
+suggestions remained. This is peer-reported private acceptance, not inspection of
+private artifacts from Linux or automatic harness-alias inference.
+
+Batch02 development fixtures cover exact control boilerplate versus real requests,
+scoped revert chronology/negation/identity, residual observation provenance, and
+per-artifact stash third-parent/source-version boundaries. Private Windows batch02
+acceptance remains pending; supplied source authenticity is not established here.

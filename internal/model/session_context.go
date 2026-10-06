@@ -5,6 +5,8 @@ import "time"
 // ContextEvidence contains offline reports of concrete user/tracker observations.
 // Its producer's claims are advisory; exact matching never overrides Git facts.
 type ContextEvidence struct {
+	ScopedReverts    []ScopedRevert   `json:"scoped_reverts,omitempty"`
+	StashArtifacts   []StashArtifact  `json:"stash_artifacts,omitempty"`
 	SchemaVersion    int              `json:"schema_version"`
 	BoundedRequests  []BoundedRequest `json:"bounded_requests"`
 	TrackerWitnesses []TrackerWitness `json:"tracker_witnesses"`
@@ -59,4 +61,38 @@ type TargetResolution struct {
 	RepoID     string            `json:"repo_id"`
 	Method     string            `json:"method"` // explicit_repository or verified_user_path; never cwd fallback.
 	Provenance ContextProvenance `json:"provenance"`
+}
+
+// ScopedRevert is a supplied user instruction, not proof it was executed.
+type ScopedRevert struct {
+	ID       string      `json:"id"`
+	Target   IntentRef   `json:"target"`
+	HostID   string      `json:"host_id"`
+	ThreadID string      `json:"thread_id"`
+	Actor    string      `json:"actor"`
+	Request  string      `json:"request"`
+	Event    IntentEvent `json:"event"`
+}
+
+// StashArtifact is a producer-checked blob witness at an exact untracked parent.
+// It does not prove the requested version or a durable copy exists.
+type StashArtifact struct {
+	ID           string            `json:"id"`
+	Target       IntentRef         `json:"target"`
+	HostID       string            `json:"host_id"`
+	RepoID       string            `json:"repo_id"`
+	CommonGitDir string            `json:"common_git_dir"`
+	StashOID     string            `json:"stash_oid"`
+	ParentOID    string            `json:"parent_oid"`
+	ParentNumber int               `json:"parent_number"`
+	Path         string            `json:"path"`
+	BlobOID      string            `json:"blob_oid"`
+	ObjectFormat string            `json:"object_format"`
+	ObjectType   string            `json:"object_type"`
+	CheckedAt    time.Time         `json:"checked_at"`
+	Provenance   ContextProvenance `json:"provenance"`
+}
+type RequestedArtifact struct {
+	Path            string `json:"path"`
+	ExpectedBlobOID string `json:"expected_blob_oid,omitempty"`
 }

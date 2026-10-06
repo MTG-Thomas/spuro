@@ -19,6 +19,7 @@ type UnknownQueue struct {
 	Limitations []string       `json:"limitations"`
 }
 type UnknownGroup struct {
+	ObservationKind    string            `json:"observation_kind,omitempty"`
 	ID                 string            `json:"id"`
 	HostID             string            `json:"host_id"`
 	ThreadID           string            `json:"thread_id"`
@@ -32,6 +33,7 @@ type UnknownGroup struct {
 	NextStep           string            `json:"next_step"`
 }
 type IntentMatch struct {
+	StashArtifact      *model.StashArtifact     `json:"stash_artifact,omitempty"`
 	OtherWorkForbidden bool                     `json:"other_work_forbidden,omitempty"`
 	RecordID           string                   `json:"record_id,omitempty"`
 	Provenance         *model.ContextProvenance `json:"provenance,omitempty"`
@@ -153,6 +155,9 @@ func FindUnknowns(ctx context.Context, r *Result) UnknownQueue {
 	postings := map[string][]int{}
 	identities := map[string][]int{}
 	for n, rec := range records {
+		if observationOnly(rec.intent) {
+			continue
+		}
 		if rec.session.HostID != "" && strings.TrimSpace(rec.intent.Description) != "" {
 			identities[descriptionIdentity(rec.session, rec.intent)] = append(identities[descriptionIdentity(rec.session, rec.intent)], n)
 		}
@@ -179,6 +184,13 @@ func FindUnknowns(ctx context.Context, r *Result) UnknownQueue {
 		key := unknownGroupKey(s, i)
 		member := model.IntentRef{SessionID: s.ID, IntentID: i.ID}
 		g := UnknownGroup{ID: key, HostID: s.HostID, ThreadID: thread, Description: i.Description, Members: []model.IntentRef{member}, IdentityCandidates: []IntentMatch{}, Gaps: []string{}, Matches: []IntentMatch{}, Suggestions: []IntentMatch{}, Priority: "BACKGROUND", NextStep: "clarify the bounded user requirement and attach observable criteria"}
+		if controlOnly(i) {
+			g.ObservationKind = "control_boilerplate_candidate"
+			if typedControl(i) {
+				g.ObservationKind = "harness_control_event"
+			}
+			g.Gaps = append(g.Gaps, "control-only event is not an independent human request or later activity; prior substantive work remains unresolved")
+		}
 		lower := strings.ToLower(i.Description)
 		for _, marker := range []string{"optional", "if needed", "maybe", "consider", "task board"} {
 			if strings.Contains(lower, marker) {
@@ -295,7 +307,7 @@ func FindUnknowns(ctx context.Context, r *Result) UnknownQueue {
 		for _, n := range indexes {
 			other := records[n]
 			t := timestamp(other.session)
-			if other.session.ID == s.ID || unknownGroupKey(other.session, other.intent) == key || descriptionIdentity(other.session, other.intent) == descriptionIdentity(s, i) || t == nil || !t.After(*timestamp(s)) || !overlap(words, tokens(other.intent.Description)) {
+			if observationOnly(i) || observationOnly(other.intent) || other.session.ID == s.ID || unknownGroupKey(other.session, other.intent) == key || descriptionIdentity(other.session, other.intent) == descriptionIdentity(s, i) || t == nil || !t.After(*timestamp(s)) || !overlap(words, tokens(other.intent.Description)) {
 				continue
 			}
 			if len(g.Suggestions) >= 3 {
@@ -317,7 +329,7 @@ func FindUnknowns(ctx context.Context, r *Result) UnknownQueue {
 		} else if len(g.IdentityCandidates) > 0 {
 			g.Priority = "CONCRETE_CANDIDATE"
 			g.NextStep = "reconcile schema/context identity before treating sightings as later activity"
-		} else if len(i.Files) > 0 || len(i.Completion) > 0 {
+		} else if len(i.Files) > 0 || len(i.Artifacts) > 0 || len(i.Completion) > 0 {
 			g.Priority = "CONCRETE_CANDIDATE"
 			g.NextStep = "resolve intended repository, then inspect supplied paths and missing criteria"
 		}
@@ -329,6 +341,27 @@ func FindUnknowns(ctx context.Context, r *Result) UnknownQueue {
 					g.NextStep = "inspect the user request before inferring whole-board authorization or supersession"
 				}
 				break
+			}
+		}
+		if residualObservation(i) {
+			g.ObservationKind = "residual_dirty_observation"
+			g.Gaps = append(g.Gaps, "assistant disavow is not authored unfinished intent; retain independent dirty-state risk and uncertain historical authorship")
+		}
+		if observationOnly(i) {
+			g.Priority = "BACKGROUND"
+			g.NextStep = "inspect producer event typing; keep the interrupted substantive request unresolved"
+			if residualObservation(i) {
+				if len(g.Matches) > 0 {
+					g.Priority = "EVIDENCE_READY"
+				}
+				g.NextStep = "inspect separate dirty preservation findings; no authorship or historical durability inferred"
+			}
+			g.Suggestions = nil
+			g.IdentityCandidates = nil
+		}
+		for _, m := range contextMatches {
+			if m.Kind == "scoped_user_revert_request" {
+				g.NextStep = "review exact thread-scoped user instruction separately from residual dirty preservation risk"
 			}
 		}
 		if n, ok := groups[key]; ok {
@@ -468,9 +501,22 @@ func unknownGroupKey(s *model.Session, i *model.Intent) string {
 		Files, Symbols, Commands                []string
 		Completion                              []model.CriterionGroup
 		Tracker                                 *model.TrackerSubject
-	}{strings.Join(strings.Fields(i.Description), " "), i.Kind, i.Origin, i.TargetRepoID, i.Explicit, i.Files, i.Symbols, i.Commands, i.Completion, i.Tracker})
+		Artifacts                               []model.RequestedArtifact `json:"Artifacts,omitempty"`
+	}{strings.Join(strings.Fields(i.Description), " "), i.Kind, i.Origin, i.TargetRepoID, i.Explicit, i.Files, i.Symbols, i.Commands, i.Completion, i.Tracker, i.Artifacts})
 	if s.HostID == "" || strings.TrimSpace(i.Description) == "" {
 		return model.ID("unknown-", s.ID, i.ID, string(payload))
 	}
 	return model.ID("unknown-", s.HostID, s.Harness, threadIdentity(s), scope(s), string(payload))
 }
+
+const abortedControl = "<turn_aborted>\nThe user interrupted the previous turn on purpose. Any running unified exec processes may still be running in the background. If any tools/commands were aborted, they may have partially executed.\n</turn_aborted>"
+
+func controlOnly(i *model.Intent) bool { return strings.TrimSpace(i.Description) == abortedControl }
+func typedControl(i *model.Intent) bool {
+	return controlOnly(i) && i.Origin == "harness_control" && i.SourceEvent != nil && exactEvent(*i.SourceEvent, i.Description, "harness_control")
+}
+
+func residualObservation(i *model.Intent) bool {
+	return i.Origin == "residual_dirty_observation" && boundEvent(i) && i.SourceEvent.Kind == "assistant_message"
+}
+func observationOnly(i *model.Intent) bool { return controlOnly(i) || residualObservation(i) }

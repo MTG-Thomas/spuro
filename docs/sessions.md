@@ -262,3 +262,101 @@ per-intent lifecycle states**, coverage or the derived session summary. Conflict
 record IDs are rejected during source merge. Existing lifecycle predicates remain
 the authority for their narrow supported conclusions. Synthetic tests are in
 `internal/sessions/context_test.go`; no private corpus is included.
+
+
+### Batch02: observations, scoped revert, and stash source availability
+
+Development main adds three bounded advisory contracts. No lifecycle states,
+coverage levels, native findings or dirty-state observations are rewritten.
+All sightings remain; observation-only records are kept out of fuzzy activity
+suggestions. These contracts require the new reader, not the released 0.2.0 binary.
+
+**Control-only content.** The exact whole-description `<turn_aborted>` boilerplate
+in `internal/sessions/unknown.go` is retained as
+`observation_kind:control_boilerplate_candidate`. Stronger producer typing requires
+`origin:harness_control` and a `source_event` with `kind:harness_control`,
+`match:exact_payload`, exact description hash and valid event provenance; this
+becomes `observation_kind:harness_control_event`. This recognizes only that exact
+payload after outer whitespace trim. Questions about the tag, quoted examples
+inside a real request, and control markers followed by substantive user text remain
+eligible for normal inspection. Neither form cancels an interrupted real request.
+The original producer emitting control boilerplate as human intent is a producer
+normalization defect; the former cross-thread fuzzy suggestion is a finder gap.
+
+**Residual disavow.** A producer may label an actual assistant report
+`origin:residual_dirty_observation` with the original bound `assistant_message`
+event, matching `recorded_at` and exact description hash. This is retained as an
+observation rather than authored unfinished intent. A label without payload-bound
+provenance is insufficient. Extracted sentences/paragraphs from a larger source
+event do not satisfy `exact_payload` merely by hashing the fragment. Keep their
+provenance gap. A separately identified full-event derivative remains supplemental
+and must not be counted as an extra original intent. Spuro does not infer this origin from arbitrary prose,
+and does not remove related dirty findings or claim historical authorship.
+
+Optional `context_evidence.scoped_reverts` records have:
+
+```json
+{
+  "id": "checked-request",
+  "target": {"session_id": "synthetic-thread", "intent_id": "residual"},
+  "host_id": "synthetic-host",
+  "thread_id": "synthetic-provider-thread",
+  "actor": "user",
+  "request": "Revert the changes from this thread and archive",
+  "event": {
+    "kind": "user_message", "at": "2026-01-01T12:00:00Z",
+    "match": "exact_payload", "description_sha256": "<exact request SHA256>",
+    "provenance": {"provider": "checked-export", "artifact": "existing.json",
+      "record_id": "user-event", "observed_at": "2026-01-01T12:01:00Z",
+      "evidence": ["exact-user-payload-and-thread-check"]}
+  }
+}
+```
+
+Only that exact request text, with an optional trailing period, is currently
+supported. Negations, hypotheticals, quotations, assistant claims, other hosts or
+provider threads do not match. The qualified target must bind to its original event.
+For a residual assistant report the user instruction must precede the report; for
+an original substantive intent it must follow the original intent. The match kind
+is `scoped_user_revert_request`: an instruction witness, not execution, lifecycle
+cancellation, whole-board completion or archive proof. A currently clean file does
+not prove its historical residual diff was preserved. Text-free reports omit the
+request payload; a later replay cannot revalidate that removed payload.
+
+**Stash availability.** An intent requests exact paths through
+`requested_artifacts:[{"path":"scripts/review.py","expected_blob_oid":"<optional>"}]`.
+Original event binding and explicit `target_repo_id`/`target_resolution` remain
+mandatory. The session association must independently identify the same exact
+`host_id`, `repo_id` and canonical `common_git_dir`; paths/junctions are not resolved
+by offline reconciliation. Optional `context_evidence.stash_artifacts` rows contain:
+
+```json
+{
+  "id": "checked-source", "target": {"session_id": "synthetic-thread", "intent_id": "source"},
+  "host_id": "synthetic-host", "repo_id": "synthetic-repo",
+  "common_git_dir": "/synthetic/repo/.git",
+  "stash_oid": "<full stash OID>", "parent_oid": "<full third-parent OID>",
+  "parent_number": 3, "path": "scripts/review.py", "blob_oid": "<full blob OID>",
+  "object_format": "sha1", "object_type": "blob",
+  "checked_at": "2026-01-01T13:00:00Z",
+  "provenance": {"provider": "checked-git", "artifact": "existing-ledger.json",
+    "record_id": "blob-lookup", "observed_at": "2026-01-01T13:01:00Z",
+    "evidence": ["checked-stash-parent-list", "checked-exact-tree-path-and-blob-type"]}
+}
+```
+
+The producer must check the parent relationship and exact path/object type using
+Git, retain the evidence, and supply full lowercase SHA-1 or SHA-256 OIDs with the
+matching format. Spuro validates the contract and exact bindings; it does not
+authenticate supplied object evidence or execute Git in the offline pass. A
+tracked parent, missing blob, different repository/common-dir, basename-only match
+or mismatching requested blob does not qualify. Only the third (untracked) parent
+is supported in this narrow contract. If no expected blob is provided, the witness
+establishes availability of that recorded version, never equality to a later
+requested version. A stash can predate the request. `SOURCE_AVAILABLE_IN_STASH`
+means per-artifact source availability, not intent execution, policy assignment,
+durable backup or permission to drop the stash. Missing artifacts remain without
+matches; no broad history search or external call is added.
+
+Fixtures: `internal/sessions/batch02_test.go`. Provider normalization is separate
+from advisory finder correlation; private Windows acceptance is pending.

@@ -15,6 +15,9 @@ func Sanitize(r *Result, noText bool) {
 			g := &r.UnknownQueue.Groups[n]
 			for n := range g.Matches {
 				sanitizeProvenance(g.Matches[n].Provenance)
+				if g.Matches[n].StashArtifact != nil {
+					sanitizeProvenance(&g.Matches[n].StashArtifact.Provenance)
+				}
 			}
 			g.Description = Redact(g.Description)
 			if noText {
@@ -25,6 +28,17 @@ func Sanitize(r *Result, noText bool) {
 	for si := range r.Sessions {
 		s := &r.Sessions[si]
 		if s.Context != nil {
+			for n := range s.Context.ScopedReverts {
+				w := &s.Context.ScopedReverts[n]
+				sanitizeProvenance(&w.Event.Provenance)
+				w.Request = Redact(w.Request)
+				if noText {
+					w.Request = ""
+				}
+			}
+			for n := range s.Context.StashArtifacts {
+				sanitizeProvenance(&s.Context.StashArtifacts[n].Provenance)
+			}
 			for n := range s.Context.BoundedRequests {
 				sanitizeProvenance(&s.Context.BoundedRequests[n].Provenance)
 			}

@@ -2,6 +2,11 @@
 
 ## 0.3.0-dev (unreleased)
 
+- Retain exact control boilerplate and payload-bound residual disavows as observations,
+  without suggesting independent activity or discarding interrupted/dirty work.
+- Accept narrow offline thread-scoped user revert instructions and exact stash
+  third-parent blob witnesses as advisory inspection evidence; no lifecycle changes.
+
 - Suppress UNKNOWN self-suggestions from repeated schema sightings; keep distinct
   context/kind/payload sightings as identity-review candidates, not later activity.
 - Accept optional versioned offline bounded-user and exact tracker-merge evidence.
