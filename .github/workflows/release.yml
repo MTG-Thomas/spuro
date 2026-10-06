@@ -1,72 +1,181 @@
 name: release
 on:
   push:
-    tags: ['v*']
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing signed tag to package; empty runs a non-publishing preview'
+        required: false
+        type: string
+  pull_request:
+    paths:
+      - '.github/workflows/release.yml'
+      - 'scripts/release.py'
+      - 'scripts/test_release.py'
+      - 'docs/releasing.md'
 permissions:
   contents: read
+concurrency:
+  group: release-${{ inputs.tag || github.ref }}
+  cancel-in-progress: false
 jobs:
-  build:
+  preflight:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        goos: [linux, darwin, windows]
-        goarch: [amd64, arm64]
+    outputs:
+      version: ${{ steps.identity.outputs.version }}
+      commit: ${{ steps.identity.outputs.commit }}
+      publish: ${{ steps.identity.outputs.publish }}
+      tag: ${{ steps.identity.outputs.tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.26.x'
-      - name: Package
+      - name: Resolve and validate release identity
+        id: identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_INPUT: ${{ inputs.tag }}
+        run: |
+          python3 - <<'PY'
+          import os, subprocess, sys
+          sys.path.insert(0, 'scripts')
+          import release
+          tag = os.environ.get('TAG_INPUT', '')
+          if os.environ['GITHUB_EVENT_NAME'] == 'push':
+              tag = os.environ['GITHUB_REF_NAME']
+          commit = release.output(['git', 'rev-parse', 'HEAD'])
+          if tag:
+              release.check_tag(tag)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'version={release.version()}\ncommit={commit}\npublish={str(bool(tag)).lower()}\ntag={tag}\n')
+          PY
+      - name: Full local gates and release fixture tests
+        run: |
+          make check build
+      - name: Install pinned release-only tools
+        env:
+          GOBIN: ${{ runner.temp }}/release-tools
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.12.0
+          echo "$GOBIN" >> "$GITHUB_PATH"
+      - name: Audit source and generate module/stdlib SBOM
+        run: |
+          govulncheck ./...
+          mkdir -p "$RUNNER_TEMP/release-metadata"
+          cyclonedx-gomod mod -std -json -output "$RUNNER_TEMP/release-metadata/spuro-sbom.cdx.json" .
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: spuro-release-metadata
+          path: ${{ runner.temp }}/release-metadata/spuro-sbom.cdx.json
+          if-no-files-found: error
+  build:
+    needs: preflight
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-latest, goos: linux, goarch: amd64 }
+          - { runner: ubuntu-latest, goos: linux, goarch: arm64 }
+          - { runner: macos-latest, goos: darwin, goarch: amd64 }
+          - { runner: macos-latest, goos: darwin, goarch: arm64 }
+          - { runner: windows-latest, goos: windows, goarch: amd64 }
+          - { runner: windows-latest, goos: windows, goarch: arm64 }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.x'
+      - name: Install pinned binary auditor
         shell: bash
         env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: '0'
-          RELEASE_TAG: ${{ github.ref_name }}
+          GOBIN: ${{ runner.temp }}/release-tools
         run: |
-          set -euo pipefail
-          mkdir -p dist
-          ext=''
-          if [ "$GOOS" = windows ]; then ext='.exe'; fi
-          for command in spuro spuro-plugin-gitwell spuro-plugin-stalewood; do
-            go build -trimpath -o "dist/$command$ext" "./cmd/$command"
-          done
-          cp LICENSE README.md dist/
-          archive="spuro-$RELEASE_TAG-$GOOS-$GOARCH"
-          if [ "$GOOS" = windows ]; then
-            (cd dist && zip -9 "../$archive.zip" *)
-          else
-            tar -C dist -czf "$archive.tar.gz" .
-          fi
+          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+          echo "$GOBIN" >> "$GITHUB_PATH"
+      - name: Package exact source, audit binaries and smoke native targets
+        shell: bash
+        env:
+          PACKAGE_OS: ${{ matrix.goos }}
+          PACKAGE_ARCH: ${{ matrix.goarch }}
+        run: python scripts/release.py package "$PACKAGE_OS" "$PACKAGE_ARCH" "$RUNNER_TEMP/spuro-package"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: spuro-${{ matrix.goos }}-${{ matrix.goarch }}
           path: |
-            spuro-*.tar.gz
-            spuro-*.zip
-  publish:
+            ${{ runner.temp }}/spuro-package/*.tar.gz
+            ${{ runner.temp }}/spuro-package/*.zip
+            ${{ runner.temp }}/spuro-package/*.build.json
+          if-no-files-found: error
+  verify:
+    needs: [preflight, build]
     runs-on: ubuntu-latest
-    needs: build
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.x'
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Check full artifact set and embedded binary identities
+        env:
+          RELEASE_VERSION: ${{ needs.preflight.outputs.version }}
+          RELEASE_COMMIT: ${{ needs.preflight.outputs.commit }}
+        run: |
+          python3 scripts/release.py checksum dist
+          python3 scripts/release.py verify-assets "$RELEASE_VERSION" dist --commit "$RELEASE_COMMIT"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: spuro-verified-release
+          path: dist/*
+          if-no-files-found: error
+  publish:
+    if: needs.preflight.outputs.publish == 'true' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.tag != ''))
+    needs: [preflight, verify]
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.preflight.outputs.commit }}
+          fetch-depth: 0
           persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.x'
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
+          name: spuro-verified-release
           path: dist
-          merge-multiple: true
-      - name: Publish
-        shell: bash
+      - name: Revalidate exact tag and publish verified artifacts
         env:
           GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.preflight.outputs.version }}
+          RELEASE_COMMIT: ${{ needs.preflight.outputs.commit }}
         run: |
-          set -euo pipefail
-          (cd dist && sha256sum spuro-* > SHA256SUMS)
-          gh release create "$RELEASE_TAG" dist/* --verify-tag --title "$RELEASE_TAG" --notes-file ".github/releases/$RELEASE_TAG.md"
+          python3 scripts/release.py check-tag "$RELEASE_TAG"
+          python3 scripts/release.py verify-assets "$RELEASE_VERSION" dist --commit "$RELEASE_COMMIT"
+          gh release create "$RELEASE_TAG" dist/* --repo MTG-Thomas/spuro --verify-tag --title "$RELEASE_TAG" --notes-file ".github/releases/$RELEASE_TAG.md"
+      - name: Verify downloaded published assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.preflight.outputs.version }}
+        run: python3 scripts/release.py verify-existing "$RELEASE_VERSION"

@@ -5,6 +5,7 @@ preserve unrelated work. Never introduce repository mutation into scanning or
 plugins. Invoke Git with argv, use machine-readable formats, and keep native
 observations separate from plugin assertions and synthesized findings.
 
+Use signed branches and ready-for-review PRs for changes; no direct main pushes.
 Sign commits. Before publishing run `make check build`; verify exact signatures.
 Changes to safety, reachability, equivalence, discovery, or parsing require fixture
 coverage. Never publish real estate reports or machine-specific private evidence.

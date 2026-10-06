@@ -2,6 +2,10 @@
 
 ## 0.3.0-dev (unreleased)
 
+- Adopt haloCLI-style release preflight/operator, CI-only packaging, source/binary
+  audits, module SBOM, build receipts and published-download verification.
+- Rehearse packaging from PRs without publishing; retain signed release tags.
+
 - Raise the minimum Go version to 1.26.8 to match the supported CI toolchain.
 
 - Accept bounded offline fork/event/fragment evidence to identify inherited source

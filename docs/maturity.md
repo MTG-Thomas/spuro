@@ -60,3 +60,10 @@ and batch03 acceptance for `55e1f87` (38 independent fixtures), verified exact b
 hashes/signatures and green exact-head CI. Batch04 adds synthetic inherited-origin
 fixtures with missing/contradictory provenance negatives; private acceptance remains
 pending. Full-event and fragment extraction authenticity remains producer-supplied.
+
+The release workflow now has a non-publishing six-target packaging rehearsal,
+source and compiled-binary vulnerability gates, module/stdlib CycloneDX inventory,
+embedded build receipts, and downloaded-asset verification. Published v0.2.0
+assets are unchanged; the new asset contract begins with the next signed-tag
+release. Cross-compiled targets are explicitly marked when not runtime-smoked.
+See [release operations](releasing.md) for the guarantees and boundaries.
