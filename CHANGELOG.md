@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0-dev (unreleased)
+## 0.3.0 — 2026-10-06
 
 - Adopt haloCLI-style release preflight/operator, CI-only packaging, source/binary
   audits, module SBOM, build receipts and published-download verification.
