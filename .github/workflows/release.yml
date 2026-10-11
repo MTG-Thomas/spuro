@@ -70,7 +70,7 @@ jobs:
           govulncheck ./...
           mkdir -p "$RUNNER_TEMP/release-metadata"
           cyclonedx-gomod mod -std -json -output "$RUNNER_TEMP/release-metadata/spuro-sbom.cdx.json" .
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: spuro-release-metadata
           path: ${{ runner.temp }}/release-metadata/spuro-sbom.cdx.json
@@ -110,7 +110,7 @@ jobs:
           PACKAGE_OS: ${{ matrix.goos }}
           PACKAGE_ARCH: ${{ matrix.goarch }}
         run: python scripts/release.py package "$PACKAGE_OS" "$PACKAGE_ARCH" "$RUNNER_TEMP/spuro-package"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: spuro-${{ matrix.goos }}-${{ matrix.goarch }}
           path: |
@@ -140,7 +140,7 @@ jobs:
         run: |
           python3 scripts/release.py checksum dist
           python3 scripts/release.py verify-assets "$RELEASE_VERSION" dist --commit "$RELEASE_COMMIT"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: spuro-verified-release
           path: dist/*
