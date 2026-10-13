@@ -48,6 +48,23 @@ def stable(v):
     return v
 
 
+def validate_release_docs(v):
+    stable(v)
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    release_link = f"[Spuro {v}](https://github.com/{REPO}/releases/tag/v{v})"
+    if release_link not in readme:
+        raise ValueError("README must link the declared stable Spuro release")
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    heading = re.search(rf"^## {re.escape(v)}(?:[ \t]+([^\n]*))?$", changelog, re.M)
+    if not heading or "unreleased" in (heading[1] or "").lower():
+        raise ValueError("changelog must contain a finalized heading for this release")
+    notes = ROOT / f".github/releases/v{v}.md"
+    if not notes.is_file():
+        raise ValueError("release notes missing")
+    if notes.read_text(encoding="utf-8").splitlines()[0:1] != [f"# Spuro {v}"]:
+        raise ValueError("release notes title must match the declared stable version")
+
+
 def verified_commit(commit):
     fact = json.loads(output(["gh", "api", f"repos/{REPO}/commits/{commit}"]))
     if fact["sha"] != commit or not fact["commit"]["verification"]["verified"]:
@@ -80,8 +97,7 @@ def preflight(v):
         raise ValueError("commit the version/changelog/release notes first")
     if output(["git", "branch", "--show-current"]) != "main" or output(["git", "status", "--porcelain"]):
         raise ValueError("release requires clean main")
-    if not (ROOT / f".github/releases/v{v}.md").is_file():
-        raise ValueError("release notes missing")
+    validate_release_docs(v)
     commit = output(["git", "rev-parse", "HEAD"])
     run(["git", "verify-commit", commit])
     remote = output(["git", "ls-remote", "origin", "refs/heads/main"]).split()[0]
@@ -108,6 +124,7 @@ def check_tag(tag):
     stable(tag.removeprefix("v"))
     if tag != "v" + version():
         raise ValueError("tag does not match compiled version")
+    validate_release_docs(version())
     commit = output(["git", "rev-parse", "HEAD"])
     if tag_target(tag) != commit:
         raise ValueError("tag is not the exact checkout")
