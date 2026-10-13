@@ -9,7 +9,9 @@ is a separate developer release operator. Python 3.10+, Go, Git, Make and authen
 ## Prepare through a PR
 
 Update `internal/model/model.go`, the changelog and `.github/releases/vX.Y.Z.md`
-together on a signed branch. Merge the PR after checks/reviews pass, then update a
+together on a signed branch. Keep README’s `[Spuro X.Y.Z]` release link synchronized.
+Preflight and tag validation reject stale README links, unfinalized changelog
+headings, and missing or mismatched release-note titles before publication. Merge the PR after checks/reviews pass, then update a
 clean local `main`. Development versions such as `0.3.0-dev` cannot be tagged by the
 operator. The release commit must equal remote main, have a valid local signature,
 be GitHub Verified, and have successful **main-push** `ci` and `govulncheck` runs for

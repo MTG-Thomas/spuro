@@ -108,6 +108,41 @@ class ReleaseTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "build-info differs"):
                     release.verify_assets("1.2.3", root)
 
+    def release_docs(self, root):
+        (root / ".github/releases").mkdir(parents=True)
+        (root / "README.md").write_text("[Spuro 1.2.3](https://github.com/MTG-Thomas/spuro/releases/tag/v1.2.3)\n", encoding="utf-8")
+        (root / "CHANGELOG.md").write_text("# Changelog\n\n## 1.2.3 — 2026-10-13\n", encoding="utf-8")
+        (root / ".github/releases/v1.2.3.md").write_text("# Spuro 1.2.3\n", encoding="utf-8")
+
+    def test_stale_release_docs_rejected_before_git_or_publication(self):
+        cases = {
+            "README.md": ["Spuro 1.2.2. Development main is 1.2.3-dev.", "[Spuro 1.2.2](https://github.com/MTG-Thomas/spuro/releases/tag/v1.2.3)"],
+            "CHANGELOG.md": ["## 1.2.3-dev (unreleased)", "## 1.2.3 (unreleased)", "## 1.2.30"],
+            ".github/releases/v1.2.3.md": ["# Spuro 1.2.2", ""],
+        }
+        for file, contents in cases.items():
+            for content in contents:
+                with self.subTest(file=file, content=content), tempfile.TemporaryDirectory() as temp:
+                    root = Path(temp); self.release_docs(root)
+                    (root / file).write_text(content, encoding="utf-8")
+                    with patch.object(release, "ROOT", root), patch.object(release, "version", return_value="1.2.3"), patch.object(release, "output", return_value="main"), patch.object(release, "run") as run:
+                        # preflight checks clean main before the documentation contract.
+                        with patch.object(release, "output", side_effect=["main", ""]):
+                            with self.assertRaises(ValueError): release.preflight("1.2.3")
+                        with self.assertRaises(ValueError): release.check_tag("v1.2.3")
+                        run.assert_not_called()
+
+    def test_finalized_release_docs_allow_historical_references(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp); self.release_docs(root)
+            with (root / "README.md").open("a", encoding="utf-8") as f:
+                f.write("Older v1.2.2 archives lack receipts.\n")
+            with patch.object(release, "ROOT", root):
+                release.validate_release_docs("1.2.3")
+                (root / ".github/releases/v1.2.3.md").unlink()
+                with self.assertRaisesRegex(ValueError, "notes missing"):
+                    release.validate_release_docs("1.2.3")
+
     def test_no_dev_version_can_be_tagged(self):
         for v in ("1.2.3-dev", "v1.2.3", "../other", "01.2.3"):
             with self.assertRaises(ValueError): release.stable(v)
