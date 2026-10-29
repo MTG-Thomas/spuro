@@ -18,6 +18,11 @@ lineages with SHA-unique/patch-unique/unknown counts and equivalence copies.
 Copy entries are representative ref witnesses, not exhaustive membership lists.
 Stash file versions may additionally carry `represented_by` witnesses for tracked
 snapshot/aggregate-patch equivalence even when exact blob bytes differ.
+Stash rename/copy detection is disabled during raw path enumeration so additions,
+source deletions and subsequent changes are all retained. A `stash-deletion` has
+an empty OID and needs snapshot/patch witnesses rather than blob witnesses before
+it can be treated as preserved. Working and index deletions may appear separately
+with different `represented_by` evidence.
 Evidence IDs referenced by findings resolve within the repository evidence list.
 Filesystem-only failures have no repository ID and refer to global diagnostics.
 

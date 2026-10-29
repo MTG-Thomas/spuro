@@ -401,11 +401,22 @@ func stashContents(ctx context.Context, g *gitbackend.Runner, x *correlation, w 
 		l.StashConfidence = model.High
 	}
 	for i, tip := range []string{c.OID, c.Parents[1]} {
-		z := g.Run(ctx, w.Repo.Path, "diff", "--raw", "-z", "--no-abbrev", "--no-ext-diff", "--no-textconv", c.Parents[0], tip, "--")
+		// Enumerate paths rather than rename pairs. Raw -z rename/copy records
+		// have two path tokens and would desynchronize the single-path parser.
+		z := g.Run(ctx, w.Repo.Path, "diff", "--raw", "-z", "--no-renames", "--no-abbrev", "--no-ext-diff", "--no-textconv", c.Parents[0], tip, "--")
 		if z.Code != 0 {
 			w.diagnostic("stash-diff", w.Repo.Path, gitbackend.Failure(z), true)
 			l.Complete = false
 			continue
+		}
+		// Bind preservation evidence to the actual working or index snapshot,
+		// before deletion records lose their source-specific kind.
+		representedBy := x.exact(w, tip, "")
+		if len(representedBy) == 0 {
+			representedBy = x.equivalent(w, tip, "", true)
+		}
+		if len(representedBy) == 0 {
+			representedBy = x.equivalent(w, tip, "", false)
 		}
 		tokens := strings.Split(string(z.Stdout), "\x00")
 		for j := 0; j+1 < len(tokens); j += 2 {
@@ -419,6 +430,7 @@ func stashContents(ctx context.Context, g *gitbackend.Runner, x *correlation, w 
 				v.Kind = "stash-deletion"
 			}
 			v.DurableCopies = x.objectCopies(w, v.OID)
+			v.RepresentedBy = representedBy
 			l.StashFiles = append(l.StashFiles, v)
 		}
 	}
@@ -440,33 +452,14 @@ func stashContents(ctx context.Context, g *gitbackend.Runner, x *correlation, w 
 			l.StashFiles = append(l.StashFiles, v)
 		}
 	}
-	// Snapshot or aggregate first-parent patch equivalence preserves tracked stash
-	// work even when rebasing changed the surrounding file bytes. Third-parent
-	// untracked content must be checked independently.
-	for i := range l.StashFiles {
-		v := &l.StashFiles[i]
-		v.RepresentedBy = []model.Copy{}
-		if v.Kind == "stash-untracked" {
-			continue
-		}
-		tip := c.OID
-		if v.Kind == "stash-index" {
-			tip = c.Parents[1]
-		}
-		v.RepresentedBy = x.exact(w, tip, "")
-		if len(v.RepresentedBy) == 0 {
-			v.RepresentedBy = x.equivalent(w, tip, "", true)
-		}
-		if len(v.RepresentedBy) == 0 {
-			v.RepresentedBy = x.equivalent(w, tip, "", false)
-		}
-	}
-	// De-duplicate repeated index/working versions, preserving their source kind.
+	// Third-parent untracked content is checked independently above. Keep
+	// deletion observations from both snapshots because their preservation
+	// evidence may differ even though both have the same empty blob OID.
 	seen := map[string]bool{}
 	files := []model.FileVersion{}
 	for _, v := range l.StashFiles {
 		k := v.Path + "\x00" + v.OID + "\x00" + v.Kind
-		if !seen[k] {
+		if v.Kind == "stash-deletion" || !seen[k] {
 			seen[k] = true
 			files = append(files, v)
 		}
@@ -550,7 +543,7 @@ func classify(w *repoWork, scopeComplete bool) []model.Finding {
 		if l.StashLike {
 			absent := []string{}
 			for _, v := range l.StashFiles {
-				if v.OID != "" && len(v.DurableCopies) == 0 && len(v.RepresentedBy) == 0 {
+				if (v.OID != "" || v.Kind == "stash-deletion") && len(v.DurableCopies) == 0 && len(v.RepresentedBy) == 0 {
 					absent = append(absent, v.Path)
 				}
 			}

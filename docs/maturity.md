@@ -14,6 +14,12 @@ Platform build support does not prove exhaustive real-estate validation everywhe
 Native Git remains authoritative. Unknown coverage and plugin failures are reported.
 Read [validation](validation.md), [schema](schema-v1.md), and [limits](roadmap.md).
 
+Native stash fixtures now cover staged renames followed by unrelated edits,
+unpreserved deletion-only stashes, preserved working deletions, and distinct
+index deletion evidence. Each new fixture checks repository files and metadata
+before and after scanning. This is disposable-fixture coverage, not a new
+private-estate acceptance claim.
+
 Version 0.2.0 adds session artifact ingestion and synthetic
 correlation fixtures. No live-session corpus validation or provider refresh was
 performed. See [session usage and coverage limits](sessions.md).
