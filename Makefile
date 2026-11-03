@@ -18,3 +18,10 @@ release-test:
 
 check: fmt-check vet test release-test
 	go test -race ./...
+
+.PHONY: secret-scan pre-push
+# Local authenticated gate; keep CI/check/test targets unchanged.
+secret-scan:
+	python3 scripts/secret_gate.py
+
+pre-push: secret-scan
