@@ -22,9 +22,10 @@ check: fmt-check vet test release-test
 .PHONY: secret-scan pre-push
 # Local authenticated gate; keep CI/check/test targets unchanged.
 secret-scan:
-	$(PYTHON) scripts/secret_gate.py
+	$(PYTHON) -I scripts/secret_gate.py
 
-pre-push: secret-scan
+pre-push:
+	$(PYTHON) -I scripts/secret_gate.py --pre-push
 
 # Override with PYTHON=python on native Windows.
 PYTHON ?= python3
